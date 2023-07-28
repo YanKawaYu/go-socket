@@ -1,3 +1,4 @@
+//go:build darwin || linux
 // +build darwin linux
 
 package utils
@@ -11,7 +12,7 @@ import (
 	"time"
 )
 
-//用于打印普通日志，包括信息、错误等
+// 用于打印普通日志，包括信息、错误等
 type ILogger interface {
 	Fatal(args ...interface{})
 	Fatalf(format string, args ...interface{})
@@ -27,13 +28,13 @@ type ILogger interface {
 	Debugf(format string, args ...interface{})
 }
 
-//用于打印访问日志
+// 用于打印访问日志
 type IFastLogger interface {
 	Info(msg string, fields ...zapcore.Field)
 	Debug(msg string, fields ...zapcore.Field)
 }
 
-//获取日志配置
+// 获取日志配置
 func getLogConfig(logName string, isDebug bool) *zap.Logger {
 	var config zap.Config
 	//根据debug与否选择不同的log配置
@@ -104,7 +105,7 @@ func (log *Log) Panicf(format string, args ...interface{}) {
 //	log.sugarLogger.Error(args)
 //}
 
-//可同时打印原始错误发生时的堆栈，同时兼容上面Error函数的功能，故替换
+// 可同时打印原始错误发生时的堆栈，同时兼容上面Error函数的功能，故替换
 func (log *Log) Error(err interface{}) {
 	log.sugarLogger.Errorf("%+v\n", err)
 }
@@ -148,7 +149,7 @@ type FastLog struct {
 	logger *zap.Logger
 }
 
-//用于需要大量打印日志的地方，FastLog速度快
+// 用于需要大量打印日志的地方，FastLog速度快
 var fastLogMap = map[string]*FastLog{}
 var fastLogLock sync.RWMutex
 

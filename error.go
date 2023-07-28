@@ -1,10 +1,10 @@
-package gotcp
+package gosocket
 
 import (
 	"errors"
 )
 
-//实现了这个接口的错误，panic的时候，就会返回4，同时
+// 实现了这个接口的错误，panic的时候，就会返回4，同时
 type IUserError interface {
 	ShowError() string
 }

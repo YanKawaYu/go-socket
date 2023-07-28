@@ -1,4 +1,4 @@
-package gotcp
+package gosocket
 
 import (
 	"encoding/json"
@@ -25,7 +25,8 @@ const (
 	kAccessLogDuration = "duration"
 )
 
-func SetAuthUser(user IUser) {
+// 设置登陆验证类
+func setAuthUser(user IUser) {
 	authUser = user
 }
 

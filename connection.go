@@ -1,4 +1,4 @@
-package gotcp
+package gosocket
 
 import (
 	"net"
@@ -8,7 +8,7 @@ import (
 type Connection struct {
 	net.Conn
 	listener *Listener
-	mutex sync.Mutex
+	mutex    sync.Mutex
 
 	closed bool //连接是否已经关闭
 }

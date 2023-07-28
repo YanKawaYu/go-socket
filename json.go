@@ -1,8 +1,8 @@
-package gotcp
+package gosocket
 
 import (
-	"encoding/json"
 	"bytes"
+	"encoding/json"
 )
 
 func JSONEncode(v interface{}) string {

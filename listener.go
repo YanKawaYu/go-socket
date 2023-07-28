@@ -1,4 +1,4 @@
-package gotcp
+package gosocket
 
 import (
 	"net"

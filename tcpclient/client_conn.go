@@ -24,35 +24,35 @@ type ClientConnInterface interface {
 }
 
 type ClientConn struct {
-	cInterface	ClientConnInterface
-	conn		net.Conn
-	jobChan		chan gotcp.Job        //任务队列
-	connAckChan	chan *packet.ConnAck      //连接回复队列
-	reqMsgId	uint16                       //协议自增消息id
-	msgIdLock	*sync.RWMutex
-	reqMsgMap	map[uint16]SendReqCallback //等待回复的消息map
-	mapLock		*sync.RWMutex
+	cInterface  ClientConnInterface
+	conn        net.Conn
+	jobChan     chan gosocket.Job    //任务队列
+	connAckChan chan *packet.ConnAck //连接回复队列
+	reqMsgId    uint16               //协议自增消息id
+	msgIdLock   *sync.RWMutex
+	reqMsgMap   map[uint16]SendReqCallback //等待回复的消息map
+	mapLock     *sync.RWMutex
 
-	msgManager	*packet.MessageManager //协议层的包管理器
-	log			utils.ILogger //输出日志用
+	msgManager *packet.MessageManager //协议层的包管理器
+	log        utils.ILogger          //输出日志用
 }
 
 func NewClientConn(connection net.Conn, log utils.ILogger) *ClientConn {
 	cli := &ClientConn{
-		conn:		connection,
-		jobChan:	make(chan gotcp.Job, QueueLength),
-		connAckChan:	make(chan *packet.ConnAck),
-		reqMsgId:	1,
-		msgIdLock: &sync.RWMutex{},
-		reqMsgMap:	make(map[uint16]SendReqCallback),
-		mapLock: &sync.RWMutex{},
+		conn:        connection,
+		jobChan:     make(chan gosocket.Job, QueueLength),
+		connAckChan: make(chan *packet.ConnAck),
+		reqMsgId:    1,
+		msgIdLock:   &sync.RWMutex{},
+		reqMsgMap:   make(map[uint16]SendReqCallback),
+		mapLock:     &sync.RWMutex{},
 
 		msgManager: &packet.MessageManager{
 			ProCommon: packet.ProtocolCommon{
-				ProName: packet.ProtocolName, //协议名
-				ProVersion: packet.ProtocolVersion, //协议版本号
-				KeepAliveTime: 60, //心跳包间隔
-				EnablePayloadGzip: true, //是否开启gzip
+				ProName:           packet.ProtocolName,    //协议名
+				ProVersion:        packet.ProtocolVersion, //协议版本号
+				KeepAliveTime:     60,                     //心跳包间隔
+				EnablePayloadGzip: true,                   //是否开启gzip
 			},
 		},
 		log: log,
@@ -62,7 +62,7 @@ func NewClientConn(connection net.Conn, log utils.ILogger) *ClientConn {
 	return cli
 }
 
-func (client *ClientConn) SetConnInterface(connInterface ClientConnInterface)  {
+func (client *ClientConn) SetConnInterface(connInterface ClientConnInterface) {
 	client.cInterface = connInterface
 }
 
@@ -141,7 +141,7 @@ func (client *ClientConn) startWriter() {
 
 func (client *ClientConn) Connect(loginInfo string) error {
 	connectMsg := &packet.Connect{
-		Payload:         loginInfo,
+		Payload: loginInfo,
 	}
 	//将消息加入任务队列，阻塞直到消息发送完成
 	client.sync(connectMsg)
@@ -178,10 +178,10 @@ func (client *ClientConn) SendRequest(payloadType string, payload string, callba
 	sendReqMsg := &packet.SendReq{
 		MessageId:  msgId,
 		ReplyLevel: replyLevel,
-		Type:	    payloadType,
+		Type:       payloadType,
 		Payload:    payload,
-		Data:		data,
-		HasData: 	hasData,
+		Data:       data,
+		HasData:    hasData,
 	}
 	client.sync(sendReqMsg)
 }
@@ -203,7 +203,7 @@ func (client *ClientConn) handleSendReq(msgType string, msgPayload string) {
 	}
 }
 
-func (client *ClientConn) handleSendResp(msgId uint16, msgPayload string)  {
+func (client *ClientConn) handleSendResp(msgId uint16, msgPayload string) {
 	client.mapLock.RLock()
 	callback := client.reqMsgMap[msgId]
 	client.mapLock.RUnlock()
@@ -219,16 +219,16 @@ func (client *ClientConn) handleSendResp(msgId uint16, msgPayload string)  {
 	}
 }
 
-//将消息加入任务队列，阻塞直到消息发送完成
+// 将消息加入任务队列，阻塞直到消息发送完成
 func (client *ClientConn) sync(message packet.IMessage) {
 	defer func() {
 		if err := recover(); err != nil {
 			client.log.Error(err)
 		}
 	}()
-	job := gotcp.Job{
+	job := gosocket.Job{
 		Message: message,
-		Receipt: make(gotcp.Receipt),
+		Receipt: make(gosocket.Receipt),
 	}
 	//加入任务队列
 	client.jobChan <- job
@@ -237,7 +237,7 @@ func (client *ClientConn) sync(message packet.IMessage) {
 }
 
 func (client *ClientConn) submit(message packet.IMessage) {
-	job := gotcp.Job{
+	job := gosocket.Job{
 		Message: message,
 	}
 	client.jobChan <- job

@@ -1,4 +1,4 @@
-package gotcp
+package gosocket
 
 import (
 	"crypto/tls"
@@ -44,6 +44,9 @@ func (app *App) Run(appConfig *AppConfig, log utils.ILogger, fastLog utils.IFast
 			fmt.Println(e)
 		}
 	}()
+	if log == nil || fastLog == nil {
+		panic("log or fastLog can't be nil")
+	}
 	//配置文件
 	app.Config = appConfig
 	//日志

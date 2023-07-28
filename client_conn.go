@@ -1,9 +1,8 @@
-package gotcp
+package gosocket
 
 import (
 	"github.com/pkg/errors"
 	"github.com/yankawayu/go-socket/packet"
-	"go.uber.org/zap/zapcore"
 	"io"
 	"net"
 	"strconv"
@@ -11,10 +10,10 @@ import (
 	"time"
 )
 
-//任务队列的长度
+// 任务队列的长度
 const kQueueLength = 200
 
-//用于任务完成的通知
+// 用于任务完成的通知
 type Receipt chan struct{}
 
 func (receipt Receipt) Wait() {
@@ -27,29 +26,12 @@ type Job struct {
 	Receipt Receipt
 }
 
-type IUser interface {
-	Auth(payload string, ip string) (uid int64, code packet.ReturnCode) //获取用户信息
-	Login(uid int64) packet.ReturnCode //登陆
-	Logout(isKickOut bool) //注销
-	Refresh() //每隔一段时间，更新在线状态
-	IsLogin() bool //是否登陆
-	RequireLock(uid int64) bool //获取用户状态锁
-	ReleaseLock(uid int64) //释放用户状态锁
-
-	GetUid() int64 //用户id
-	GetConnectInfo() []zapcore.Field //连接信息
-	GetSendReqInfo() []zapcore.Field //请求信息
-
-	//处理不需要回复的SendReq，目前不需要回复的消息都是修改用户状态，故暂时放在User中
-	HandleNoReplyReq(payloadType string, payload string)
-}
-
 type ClientConn struct {
-	conn		net.Conn
-	clientIp	string
-	jobChan 	chan Job		//发出消息任务队列
-	handler		*MessageHandler		//消息处理
-	msgManager	*packet.MessageManager
+	conn       net.Conn
+	clientIp   string
+	jobChan    chan Job        //发出消息任务队列
+	handler    *MessageHandler //消息处理
+	msgManager *packet.MessageManager
 }
 
 func NewClientConn(conn net.Conn) (client *ClientConn) {
@@ -62,21 +44,21 @@ func NewClientConn(conn net.Conn) (client *ClientConn) {
 	clientIp := conn.RemoteAddr().String()
 	//忽略端口号，只取ip
 	ipAndPort := strings.Split(clientIp, ":")
-	if len(ipAndPort)>0 {
+	if len(ipAndPort) > 0 {
 		clientIp = ipAndPort[0]
 	}
 	jobChan := make(chan Job, kQueueLength)
 	client = &ClientConn{
-		conn:		conn,
-		clientIp:	clientIp,
-		jobChan:	jobChan,
-		handler: 	NewMessageHandler(jobChan, clientIp),
+		conn:       conn,
+		clientIp:   clientIp,
+		jobChan:    jobChan,
+		handler:    NewMessageHandler(jobChan, clientIp),
 		msgManager: &packet.MessageManager{},
 	}
 	return
 }
 
-func (client *ClientConn) Start ()  {
+func (client *ClientConn) Start() {
 	//读线程
 	go client.startReader()
 	//写线程
@@ -85,7 +67,7 @@ func (client *ClientConn) Start ()  {
 	go client.handler.Start()
 }
 
-//开启写线程
+// 开启写线程
 func (client *ClientConn) startWriter() {
 	defer func() {
 		if err := recover(); err != nil {
@@ -122,7 +104,7 @@ func (client *ClientConn) startWriter() {
 	}
 }
 
-//开启读线程
+// 开启读线程
 func (client *ClientConn) startReader() {
 	defer func() {
 		if err := recover(); err != nil {
@@ -138,9 +120,9 @@ func (client *ClientConn) startReader() {
 	}()
 	for {
 		//超时时间，设置为心跳包间隔的1.5倍，避免复杂网络
-		timeoutInterval := time.Duration(float64(client.msgManager.ProCommon.KeepAliveTime)*1.5)
+		timeoutInterval := time.Duration(float64(client.msgManager.ProCommon.KeepAliveTime) * 1.5)
 		if timeoutInterval > 0 {
-			client.conn.SetReadDeadline(time.Now().Add(timeoutInterval*time.Second))
+			client.conn.SetReadDeadline(time.Now().Add(timeoutInterval * time.Second))
 		}
 		//获取消息
 		msg, err := client.msgManager.DecodeMessage(client.conn)
@@ -148,7 +130,7 @@ func (client *ClientConn) startReader() {
 			if err == io.EOF {
 				//客户端关闭连接
 				return
-			}else if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+			} else if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 				//用于调试用户连接是否断开
 				TcpApp.Log.Debugf("user %d client conn timeout", client.handler.user.GetUid())
 				//超时，长时间没有收到心跳包
@@ -181,7 +163,7 @@ func (client *ClientConn) startReader() {
 			//如果是自己定义的消息错误，仅在Debug环境输出
 			if _, ok := err.(packet.MessageErr); ok {
 				TcpApp.Log.Debug(errors.Wrap(err, client.clientIp))
-			}else {
+			} else {
 				TcpApp.Log.Error(errors.Wrap(err, client.clientIp))
 			}
 			return
