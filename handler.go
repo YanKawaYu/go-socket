@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/yankawayu/go-socket/packet"
-	"github.com/yankawayu/go-socket/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"reflect"
@@ -133,7 +132,7 @@ func (handler *MessageHandler) Start() {
 			break
 		}
 		// 判断. 若需要退出, 且此时读写队列都没有数据了, 则断开链接
-		if utils.GetRestartManager().IsStop() &&
+		if GetRestartManager().IsStop() &&
 			len(handler.jobChan) <= 0 &&
 			len(handler.workChan) <= 0 {
 			break

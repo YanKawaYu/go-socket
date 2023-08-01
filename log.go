@@ -1,7 +1,7 @@
 //go:build darwin || linux
 // +build darwin linux
 
-package utils
+package gosocket
 
 import (
 	"go.uber.org/zap"

@@ -3,7 +3,6 @@ package gosocket
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/yankawayu/go-socket/utils"
 	"os"
 )
 
@@ -26,8 +25,8 @@ type AppConfig struct {
 
 type App struct {
 	Server  *Server
-	Log     utils.ILogger
-	FastLog utils.IFastLogger
+	Log     ILogger
+	FastLog IFastLogger
 	Config  *AppConfig
 }
 
@@ -36,7 +35,7 @@ func NewApp() *App {
 	return app
 }
 
-func (app *App) Run(appConfig *AppConfig, log utils.ILogger, fastLog utils.IFastLogger) {
+func (app *App) Run(appConfig *AppConfig, log ILogger, fastLog IFastLogger) {
 	defer func() {
 		if e := recover(); e != nil {
 			TcpApp.Log.Error(e)
@@ -54,8 +53,10 @@ func (app *App) Run(appConfig *AppConfig, log utils.ILogger, fastLog utils.IFast
 	app.FastLog = fastLog
 	//从环境变量中判断是否为优雅重启
 	isGraceful := false
-	if os.Getenv(utils.GracefulEnvironKey) != "" {
+	if os.Getenv(GracefulEnvironKey) != "" {
 		isGraceful = true
+		//initialize graceful restart
+		InitGracefulRestart()
 	}
 	//创建一个server
 	app.Server = NewServer(app.Config.TcpAddr, isGraceful)

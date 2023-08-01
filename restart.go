@@ -1,6 +1,7 @@
+//go:build darwin || linux
 // +build darwin linux
 
-package utils
+package gosocket
 
 import (
 	"fmt"
@@ -28,7 +29,7 @@ type RestartManager struct {
 	isStop          bool
 }
 
-func init() {
+func InitGracefulRestart() {
 	restartManager = &RestartManager{
 		listenerMap:     make(map[int]*net.TCPListener),
 		restartHandlers: make([]OnRestartSuccess, 0),
@@ -37,18 +38,18 @@ func init() {
 	go restartManager.handleSignals()
 }
 
-//获取重启管理器
+// 获取重启管理器
 func GetRestartManager() *RestartManager {
 	return restartManager
 }
 
-//注册回调
+// 注册回调
 func (manager *RestartManager) RegisterHandler(restartSuccess OnRestartSuccess) {
 	manager.restartHandlers = append(manager.restartHandlers, restartSuccess)
 }
 
-//记录文件描述符，返回false说明index已存在，记录失败
-//0 1 2已被占用，从3开始使用，为避免浪费所有key必须连续
+// 记录文件描述符，返回false说明index已存在，记录失败
+// 0 1 2已被占用，从3开始使用，为避免浪费所有key必须连续
 func (manager *RestartManager) MarkFd(key int, listener *net.TCPListener) {
 	if key < 3 {
 		panic("can't use 0 1 2 as key")
@@ -64,7 +65,7 @@ func (manager *RestartManager) IsStop() bool {
 	return manager.isStop
 }
 
-//处理信号
+// 处理信号
 func (manager *RestartManager) handleSignals() {
 	//当前进程id
 	pid := os.Getpid()
@@ -115,7 +116,7 @@ func (manager *RestartManager) handleSignals() {
 	}
 }
 
-//通过fork的方式启动子进程
+// 通过fork的方式启动子进程
 func (manager *RestartManager) startNewProcess() error {
 	//找出最大的key
 	maxKey := 0

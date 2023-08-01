@@ -1,4 +1,4 @@
-package utils
+package gosocket
 
 import (
 	"fmt"
@@ -6,21 +6,21 @@ import (
 	"time"
 )
 
-//需要等待结束的程序, 当当前的所有程序全部结束之后才能进行重启
+// 需要等待结束的程序, 当当前的所有程序全部结束之后才能进行重启
 type IRestartWaitWork interface {
 	GetName() string
 	ReceiveWaitChan() bool
 	SendWaitChan()
-	StartToWait() //开始等待
-	GetWorkStatus() WaitWorkStatus//修改等待工作的状态，开始等待所有的工作结束
-	SetWorkStatus(WaitWorkStatus) // 结束当前工作
+	StartToWait()                  //开始等待
+	GetWorkStatus() WaitWorkStatus //修改等待工作的状态，开始等待所有的工作结束
+	SetWorkStatus(WaitWorkStatus)  // 结束当前工作
 }
 
 type WaitWorkStatus int8
 
 const (
-	WaitWorkStatusNone = WaitWorkStatus(0) //处于闲置状态中
-	WaitWorkStatusWait = WaitWorkStatus(1) //处于等待结束的进程中
+	WaitWorkStatusNone   = WaitWorkStatus(0) //处于闲置状态中
+	WaitWorkStatusWait   = WaitWorkStatus(1) //处于等待结束的进程中
 	WaitWorkStatusFinish = WaitWorkStatus(2) //已经结束
 )
 
@@ -30,7 +30,7 @@ type RestartWaitWorkBase struct {
 	status     WaitWorkStatus //当前等待的状态
 }
 
-//生成一个新的等待工作的基础类
+// 生成一个新的等待工作的基础类
 func GenerateNewWaitWorkBase(name string) RestartWaitWorkBase {
 	return RestartWaitWorkBase{
 		finishChan: make(chan bool),
@@ -44,7 +44,7 @@ func (work *RestartWaitWorkBase) GetName() string {
 }
 
 func (work *RestartWaitWorkBase) ReceiveWaitChan() bool {
-	return <- work.finishChan
+	return <-work.finishChan
 }
 
 func (work *RestartWaitWorkBase) SendWaitChan() {
@@ -59,25 +59,24 @@ func (work *RestartWaitWorkBase) SetWorkStatus(status WaitWorkStatus) {
 	work.status = status
 }
 
-
 type RestartWaitManager struct {
 	WaitWorkMap map[int]IRestartWaitWork
-	CountChan chan int //用于接收其他进程结束的时候的信息
-	MaxWaitTime int //最长等待时间
-	SyncLock *sync.Mutex
+	CountChan   chan int //用于接收其他进程结束的时候的信息
+	MaxWaitTime int      //最长等待时间
+	SyncLock    *sync.Mutex
 }
 
 var restartWaitManager *RestartWaitManager
 
 func init() {
 	restartWaitManager = &RestartWaitManager{
-		CountChan: make(chan int),
+		CountChan:   make(chan int),
 		WaitWorkMap: make(map[int]IRestartWaitWork),
-		SyncLock: &sync.Mutex{},
+		SyncLock:    &sync.Mutex{},
 	}
 }
 
-func GetRestartWaitManager() *RestartWaitManager  {
+func GetRestartWaitManager() *RestartWaitManager {
 	return restartWaitManager
 }
 
@@ -115,22 +114,24 @@ func (manager *RestartWaitManager) WaitToRestart() {
 	count := 0
 	timer := time.NewTicker(time.Second * 60 * 5) //如果5分钟所有工作还没有结束，直接自动重启
 	//阻塞在当前环节
-	Loop:
+Loop:
 	for {
-		select{
-		case workNum := <- manager.CountChan:
+		select {
+		case workNum := <-manager.CountChan:
 			currentWaitWork := manager.WaitWorkMap[workNum]
 			//如果当前工作已经结束了，直接break
-			if currentWaitWork.GetWorkStatus() == WaitWorkStatusFinish { break }
+			if currentWaitWork.GetWorkStatus() == WaitWorkStatusFinish {
+				break
+			}
 			//记录数量
-			count ++
+			count++
 			//修改状态
 			currentWaitWork.SetWorkStatus(WaitWorkStatusFinish)
 			//判断是否退出循环
 			if count >= len(manager.WaitWorkMap) {
 				break Loop
 			}
-		case <- timer.C:
+		case <-timer.C:
 			break Loop
 		}
 	}

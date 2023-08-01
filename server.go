@@ -3,7 +3,6 @@ package gosocket
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/yankawayu/go-socket/utils"
 	"net"
 	"os"
 	"strconv"
@@ -39,9 +38,9 @@ func (server *Server) ListenAndServe(config *tls.Config) {
 	listener := server.getTCPListener(TcpApp.Config.TcpPort)
 	server.listener = NewListener(listener)
 	//记录文件描述符 record the fds
-	utils.GetRestartManager().MarkFd(kListenFd, listener)
+	GetRestartManager().MarkFd(kListenFd, listener)
 	//监听重启 set a handler to listen to restart event
-	utils.GetRestartManager().RegisterHandler(func() {
+	GetRestartManager().RegisterHandler(func() {
 		//如果子进程启动成功，主进程停止接受连接
 		//Stop main process from listening once the sub process has started
 		server.listener.Close()

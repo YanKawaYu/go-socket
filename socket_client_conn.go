@@ -1,9 +1,7 @@
-package tcpclient
+package gosocket
 
 import (
-	"github.com/yankawayu/go-socket"
 	"github.com/yankawayu/go-socket/packet"
-	"github.com/yankawayu/go-socket/utils"
 	"io"
 	"log"
 	"net"
@@ -23,10 +21,10 @@ type ClientConnInterface interface {
 	DecodeResponse(payloadBody string) (error, string)
 }
 
-type ClientConn struct {
+type SocketClientConn struct {
 	cInterface  ClientConnInterface
 	conn        net.Conn
-	jobChan     chan gosocket.Job    //任务队列
+	jobChan     chan Job             //任务队列
 	connAckChan chan *packet.ConnAck //连接回复队列
 	reqMsgId    uint16               //协议自增消息id
 	msgIdLock   *sync.RWMutex
@@ -34,13 +32,13 @@ type ClientConn struct {
 	mapLock     *sync.RWMutex
 
 	msgManager *packet.MessageManager //协议层的包管理器
-	log        utils.ILogger          //输出日志用
+	log        ILogger                //输出日志用
 }
 
-func NewClientConn(connection net.Conn, log utils.ILogger) *ClientConn {
-	cli := &ClientConn{
+func NewSocketClientConn(connection net.Conn, log ILogger) *SocketClientConn {
+	cli := &SocketClientConn{
 		conn:        connection,
-		jobChan:     make(chan gosocket.Job, QueueLength),
+		jobChan:     make(chan Job, QueueLength),
 		connAckChan: make(chan *packet.ConnAck),
 		reqMsgId:    1,
 		msgIdLock:   &sync.RWMutex{},
@@ -62,15 +60,15 @@ func NewClientConn(connection net.Conn, log utils.ILogger) *ClientConn {
 	return cli
 }
 
-func (client *ClientConn) SetConnInterface(connInterface ClientConnInterface) {
+func (client *SocketClientConn) SetConnInterface(connInterface ClientConnInterface) {
 	client.cInterface = connInterface
 }
 
-func (client *ClientConn) GetConnInterface() ClientConnInterface {
+func (client *SocketClientConn) GetConnInterface() ClientConnInterface {
 	return client.cInterface
 }
 
-func (client *ClientConn) startReader() {
+func (client *SocketClientConn) startReader() {
 	defer func() {
 		close(client.jobChan)
 		client.conn.Close()
@@ -116,7 +114,7 @@ func (client *ClientConn) startReader() {
 	}
 }
 
-func (client *ClientConn) startWriter() {
+func (client *SocketClientConn) startWriter() {
 	defer func() {
 		//log.Println("writer stopped")
 	}()
@@ -139,7 +137,7 @@ func (client *ClientConn) startWriter() {
 	}
 }
 
-func (client *ClientConn) Connect(loginInfo string) error {
+func (client *SocketClientConn) Connect(loginInfo string) error {
 	connectMsg := &packet.Connect{
 		Payload: loginInfo,
 	}
@@ -150,12 +148,12 @@ func (client *ClientConn) Connect(loginInfo string) error {
 	return packet.ConnectionErrors[ack.ReturnCode]
 }
 
-func (client *ClientConn) Disconnect() {
+func (client *SocketClientConn) Disconnect() {
 	disconnectMsg := &packet.Disconnect{}
 	client.submit(disconnectMsg)
 }
 
-func (client *ClientConn) SendRequest(payloadType string, payload string, callback SendReqCallback, data []byte) {
+func (client *SocketClientConn) SendRequest(payloadType string, payload string, callback SendReqCallback, data []byte) {
 	replyLevel := packet.RLevelReplyLater
 	if callback == nil {
 		replyLevel = packet.RLevelNoReply
@@ -186,13 +184,13 @@ func (client *ClientConn) SendRequest(payloadType string, payload string, callba
 	client.sync(sendReqMsg)
 }
 
-func (client *ClientConn) SendPing() {
+func (client *SocketClientConn) SendPing() {
 	pingMsg := &packet.PingReq{}
 	client.sync(pingMsg)
 	//log.Println("ping sent")
 }
 
-func (client *ClientConn) handleSendReq(msgType string, msgPayload string) {
+func (client *SocketClientConn) handleSendReq(msgType string, msgPayload string) {
 	defer func() {
 		if err := recover(); err != nil {
 			client.log.Error(err)
@@ -203,7 +201,7 @@ func (client *ClientConn) handleSendReq(msgType string, msgPayload string) {
 	}
 }
 
-func (client *ClientConn) handleSendResp(msgId uint16, msgPayload string) {
+func (client *SocketClientConn) handleSendResp(msgId uint16, msgPayload string) {
 	client.mapLock.RLock()
 	callback := client.reqMsgMap[msgId]
 	client.mapLock.RUnlock()
@@ -220,15 +218,15 @@ func (client *ClientConn) handleSendResp(msgId uint16, msgPayload string) {
 }
 
 // 将消息加入任务队列，阻塞直到消息发送完成
-func (client *ClientConn) sync(message packet.IMessage) {
+func (client *SocketClientConn) sync(message packet.IMessage) {
 	defer func() {
 		if err := recover(); err != nil {
 			client.log.Error(err)
 		}
 	}()
-	job := gosocket.Job{
+	job := Job{
 		Message: message,
-		Receipt: make(gosocket.Receipt),
+		Receipt: make(Receipt),
 	}
 	//加入任务队列
 	client.jobChan <- job
@@ -236,8 +234,8 @@ func (client *ClientConn) sync(message packet.IMessage) {
 	job.Receipt.Wait()
 }
 
-func (client *ClientConn) submit(message packet.IMessage) {
-	job := gosocket.Job{
+func (client *SocketClientConn) submit(message packet.IMessage) {
+	job := Job{
 		Message: message,
 	}
 	client.jobChan <- job

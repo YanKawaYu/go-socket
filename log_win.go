@@ -1,6 +1,7 @@
+//go:build windows
 // +build windows
 
-package utils
+package gosocket
 
 import "go.uber.org/zap/zapcore"
 
@@ -8,7 +9,7 @@ func GenerateLog(isDebug bool) *Log {
 	return &Log{}
 }
 
-type Log struct {}
+type Log struct{}
 
 // Fatal is equivalent to l.Critical(fmt.Sprint()) followed by a call to os.Exit(1).
 func (log *Log) Fatal(args ...interface{}) {}
@@ -27,7 +28,7 @@ func (log *Log) Panicf(format string, args ...interface{}) {}
 //	log.sugarLogger.Error(args)
 //}
 
-//可同时打印原始错误发生时的堆栈，同时兼容上面Error函数的功能，故替换
+// 可同时打印原始错误发生时的堆栈，同时兼容上面Error函数的功能，故替换
 func (log *Log) Error(err interface{}) {}
 
 // Errorf logs a message using ERROR as log level.
@@ -51,7 +52,7 @@ func (log *Log) Debug(args ...interface{}) {}
 // Debugf logs a message using DEBUG as log level.
 func (log *Log) Debugf(format string, args ...interface{}) {}
 
-type FastLog struct {}
+type FastLog struct{}
 
 func GetFastLog(logName string) *FastLog {
 	fastLog := &FastLog{}
