@@ -133,8 +133,9 @@ func (handler *MessageHandler) Start() {
 		case <-time.After(time.Second):
 			break
 		}
+		// If the main process received restart signal and both queues have no data to process
 		// 判断. 若需要退出, 且此时读写队列都没有数据了, 则断开链接
-		isStop := true
+		isStop := false
 		if GetRestartManager() != nil {
 			isStop = GetRestartManager().IsStop()
 		}
