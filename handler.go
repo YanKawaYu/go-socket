@@ -134,7 +134,11 @@ func (handler *MessageHandler) Start() {
 			break
 		}
 		// 判断. 若需要退出, 且此时读写队列都没有数据了, 则断开链接
-		if GetRestartManager().IsStop() &&
+		isStop := true
+		if GetRestartManager() != nil {
+			isStop = GetRestartManager().IsStop()
+		}
+		if isStop &&
 			len(handler.jobChan) <= 0 &&
 			len(handler.workChan) <= 0 {
 			break
