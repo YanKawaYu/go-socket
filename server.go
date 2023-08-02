@@ -21,8 +21,8 @@ type Server struct {
 	listener   *Listener
 }
 
-// NewServer 创建一个新的服务器
-// Create a new server
+// NewServer Create a new server
+// 创建一个新的服务器
 func NewServer(addr string, isGraceful bool) *Server {
 	server := &Server{
 		addr:       addr,
@@ -32,25 +32,29 @@ func NewServer(addr string, isGraceful bool) *Server {
 	return server
 }
 
-// ListenAndServe 启动服务器并开始监听，如果config不为nil，则启用TLS
-// start listening and serving
+// ListenAndServe start listening and serving
+// if the config isn't nil, then the tls will be enabled
+// 启动服务器并开始监听，如果config不为nil，则启用TLS
 func (server *Server) ListenAndServe(config *tls.Config) {
 	listener := server.getTCPListener(TcpApp.Config.TcpPort)
 	server.listener = NewListener(listener)
-	//记录文件描述符 record the fds
-	GetRestartManager().MarkFd(kListenFd, listener)
-	//监听重启 set a handler to listen to restart event
-	GetRestartManager().RegisterHandler(func() {
-		//如果子进程启动成功，主进程停止接受连接
-		//Stop main process from listening once the sub process has started
-		server.listener.Close()
-	})
+
+	restartManager := GetRestartManager()
+	if restartManager != nil {
+		//记录文件描述符 record the fds
+		restartManager.MarkFd(kListenFd, listener)
+		//监听重启 set a handler to listen to restart event
+		restartManager.RegisterHandler(func() {
+			//如果子进程启动成功，主进程停止接受连接
+			//Stop main process from listening once the sub process has started
+			server.listener.Close()
+		})
+	}
 	//开始处理请求
 	//Start handling requests
 	server.serve(config)
 }
 
-// 如果config不为nil，则启用TLS
 func (server *Server) serve(config *tls.Config) {
 	pid := os.Getpid()
 	//开始处理连接
@@ -85,6 +89,7 @@ func (server *Server) serve(config *tls.Config) {
 	close(server.signalChan)
 }
 
+// get tcp listener from a fd or a certain address
 // 从文件描述符或者指定地址监听
 func (server *Server) getTCPListener(port int) *net.TCPListener {
 	var listener net.Listener

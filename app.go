@@ -14,13 +14,14 @@ func init() {
 	TcpApp = NewApp()
 }
 
+// AppConfig Server configuration
 // 服务器配置
 type AppConfig struct {
-	TcpAddr   string //地址
-	TcpPort   int    //端口号
-	TlsEnable bool   //是否开启TLS
-	TlsCert   string //TLS证书
-	TlsKey    string //TLS密钥
+	TcpAddr   string //The address which the app is listening to 地址
+	TcpPort   int    //The port which the app is listening to 端口号
+	TlsEnable bool   //Whether to enable tls 是否开启TLS
+	TlsCert   string //The certification used by tls TLS证书
+	TlsKey    string //The key used by tls TLS密钥
 }
 
 type App struct {
@@ -35,6 +36,12 @@ func NewApp() *App {
 	return app
 }
 
+// Run start the app server
+// 启动服务器
+// The appConfig is used to configure the server
+// The log is used to log any errors happens during the process
+// The fastLog is used to log any requests received by the server
+// The requests can be very frequent therefore using the fast logger will make sure the performance is high
 func (app *App) Run(appConfig *AppConfig, log ILogger, fastLog IFastLogger) {
 	defer func() {
 		if e := recover(); e != nil {

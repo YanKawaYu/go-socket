@@ -14,11 +14,10 @@ const QueueLength = 50
 type SendReqCallback func(payloadBody string)
 
 type ClientConnInterface interface {
-	//监听服务器推送
+	// OnSendReqReceived called once there is a push notification from the server
 	OnSendReqReceived(reqType string, reqBody string)
+	// OnDisconnect called once the connection is off
 	OnDisconnect()
-	//解析服务器返回
-	DecodeResponse(payloadBody string) (error, string)
 }
 
 type SocketClientConn struct {
@@ -82,6 +81,7 @@ func (client *SocketClientConn) startReader() {
 		//获取消息
 		msg, err := client.msgManager.DecodeMessage(client.conn)
 		if err != nil {
+			//Whether the server close the connection
 			//捕获到服务器关闭连接的信号
 			if err == io.EOF {
 				log.Println("server close connection")
@@ -94,6 +94,7 @@ func (client *SocketClientConn) startReader() {
 			log.Println("get message fail:", err)
 			return
 		}
+		//Handle the message differently according to its type
 		//根据消息类型进行不同处理
 		switch msg := msg.(type) {
 		case *packet.ConnAck:
@@ -207,6 +208,7 @@ func (client *SocketClientConn) handleSendResp(msgId uint16, msgPayload string) 
 	client.mapLock.RUnlock()
 	//如果有回调
 	if callback != nil {
+		//Run asynchronously, make sure the callback won't block the message handling
 		//异步执行，确保回调不会卡消息处理
 		go func() {
 			callback(msgPayload)
@@ -217,7 +219,8 @@ func (client *SocketClientConn) handleSendResp(msgId uint16, msgPayload string) 
 	}
 }
 
-// 将消息加入任务队列，阻塞直到消息发送完成
+// Add the message into sending queue and wait synchronously until the message is sent
+// 将消息同步加入任务队列，阻塞直到消息发送完成
 func (client *SocketClientConn) sync(message packet.IMessage) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -234,6 +237,8 @@ func (client *SocketClientConn) sync(message packet.IMessage) {
 	job.Receipt.Wait()
 }
 
+// Add the message into sending queue and return immediately
+// 将消息异步加入任务队列
 func (client *SocketClientConn) submit(message packet.IMessage) {
 	job := Job{
 		Message: message,

@@ -20,6 +20,7 @@ func init() {
 	controllerMap = make(map[string]IController)
 }
 
+// Router Register a controller to its corresponding name
 // 注册Controller以及对应的名字
 func Router(controllerName string, controller IController) {
 	controllerMap[controllerName] = controller
@@ -35,6 +36,7 @@ const (
 
 type Status uint8
 
+// ResponseBody the format of the server response
 // 返回数据
 type ResponseBody struct {
 	Status  Status    `json:"status"`
@@ -44,6 +46,7 @@ type ResponseBody struct {
 
 type IRespData interface{}
 
+// IController the interface that all controllers should be implemented
 // Controller接口，用于多态
 type IController interface {
 	Init(user IUser, data []byte)
@@ -52,6 +55,7 @@ type IController interface {
 	AfterAction(data *ResponseBody)
 }
 
+// Controller the base class of all controllers
 // Controller基类，用于共同的属性和方法
 type Controller struct {
 	User IUser
@@ -63,9 +67,11 @@ func (controller *Controller) Init(user IUser, data []byte) {
 	controller.Data = data
 }
 
+// BeforeAction run before the action
 // action之前执行
 func (controller *Controller) BeforeAction(paramStr string) {}
 
+// AfterAction run after the action
 // action之后执行
 func (controller *Controller) AfterAction(data *ResponseBody) {}
 
@@ -73,6 +79,8 @@ func ProcessPayload(user IUser, payloadType string, payload string) (response *R
 	return ProcessPayloadWithData(user, payloadType, payload, nil)
 }
 
+// ProcessPayloadWithData process the request payload
+// This function will match the request to a certain action under the controller by reflecting
 func ProcessPayloadWithData(user IUser, payloadType string, payload string, data []byte) (response *ResponseBody) {
 	defer func() {
 		var message = "服务器开小差啦~"

@@ -24,6 +24,7 @@ const (
 	kAccessLogDuration = "duration"
 )
 
+// Set a class that implements IUser to do identification
 // 设置登陆验证类
 func setAuthUser(user IUser) {
 	authUser = user
@@ -37,6 +38,7 @@ type MessageHandler struct {
 	isStop   bool                 //是否停止
 }
 
+// NewMessageHandler Create a new message handler
 func NewMessageHandler(jobChan chan Job, ip string) *MessageHandler {
 	handler := &MessageHandler{
 		jobChan:  jobChan,
@@ -57,8 +59,8 @@ func NewMessageHandler(jobChan chan Job, ip string) *MessageHandler {
 	return handler
 }
 
-// Start 开始处理消息
-// start to handle messages
+// Start to handle messages
+// 开始处理消息
 func (handler *MessageHandler) Start() {
 	defer func() {
 		if err := recover(); err != nil {
@@ -140,8 +142,8 @@ func (handler *MessageHandler) Start() {
 	}
 }
 
-// Stop 停止处理消息
-// stop to handle messages
+// Stop handling messages
+// 停止处理消息
 func (handler *MessageHandler) Stop(isKickOut bool) {
 	//如果停止过了，直接返回，避免stop在短时间内两次调用导致用户在线状态被清空
 	if handler.isStop {
@@ -165,6 +167,7 @@ func (handler *MessageHandler) Stop(isKickOut bool) {
 	}
 }
 
+// Handle the connect message
 // 连接消息
 func (handler *MessageHandler) handleConnect(msg *packet.Connect) (isConnect bool) {
 	startTime := time.Now()
@@ -236,6 +239,7 @@ func (handler *MessageHandler) handleConnect(msg *packet.Connect) (isConnect boo
 	return
 }
 
+// Handle the normal request messages
 // 请求消息
 func (handler *MessageHandler) handleSendReq(msg *packet.SendReq) {
 	defer func() {
@@ -302,14 +306,15 @@ func (handler *MessageHandler) handleSendReq(msg *packet.SendReq) {
 	}
 }
 
+// Handle the ping-pong message
 // 心跳消息
 func (handler *MessageHandler) handlePingReq(msg *packet.PingReq) {
 	pingResp := &packet.PingResp{}
 	handler.Submit(pingResp)
 }
 
-// PushNotify 发推送到客户端
-// Send push message to the client
+// PushNotify Send push message to the client
+// 发推送到客户端
 func (handler *MessageHandler) PushNotify(notifyType string, body interface{}) {
 	msgReq := &packet.SendReq{
 		Type:       notifyType,
@@ -319,8 +324,8 @@ func (handler *MessageHandler) PushNotify(notifyType string, body interface{}) {
 	handler.Submit(msgReq)
 }
 
-// Submit 发送消息，异步进行，消息发送成功就返回，如果任务队列满了则忽略消息
-// Send message asynchronously
+// Submit Send message asynchronously, if the queue is full then ignore the message and log error
+// 发送消息，异步进行，消息发送成功就返回，如果任务队列满了则忽略消息
 func (handler *MessageHandler) Submit(message packet.IMessage) {
 	job := Job{
 		Message: message,
@@ -337,6 +342,7 @@ func (handler *MessageHandler) Submit(message packet.IMessage) {
 	return
 }
 
+// Send message synchronously, if the queue is full then wait until the message is sent
 // 发送消息，同步进行，只有消息发送成功且被处理完之后才返回，如果队列满了则等待
 func (handler *MessageHandler) submitSync(message packet.IMessage) {
 	job := Job{

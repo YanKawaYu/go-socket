@@ -13,7 +13,7 @@ import (
 // 任务队列的长度
 const kQueueLength = 200
 
-// 用于任务完成的通知
+// Receipt 用于任务完成的通知
 type Receipt chan struct{}
 
 func (receipt Receipt) Wait() {

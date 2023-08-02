@@ -1,24 +1,24 @@
 package packet
 
 import (
-	"fmt"
-	"io"
 	"bytes"
+	"fmt"
 	"github.com/pkg/errors"
+	"io"
 )
 
-const ProtocolName = "DPIM"
+const ProtocolName = "GOSOC"
 const ProtocolVersion = 1
 
-//消息类型
+// 消息类型
 const (
 	MsgConnect = MessageType(iota + 1)
 	MsgConnAck
 	MsgPingReq
 	MsgPingResp
 	MsgDisconnect
-	MsgSendReq 	//客户端或服务器发消息
-	MsgSendResp 	//客户端或服务器回复消息
+	MsgSendReq  //客户端或服务器发消息
+	MsgSendResp //客户端或服务器回复消息
 
 	msgTypeFirstInvalid
 )
@@ -29,7 +29,7 @@ func (mt MessageType) IsValid() bool {
 	return mt >= MsgConnect && mt < msgTypeFirstInvalid
 }
 
-//报文最大长度
+// 报文最大长度
 const (
 	// Maximum payload size in bytes 256MB
 	MaxPayloadSize = (1 << (4 * 7)) - 1
@@ -42,13 +42,13 @@ type IMessage interface {
 	Decode(reader io.Reader, header FixHeader, proCommon *ProtocolCommon) error
 }
 
-//写入消息的头部
+// 写入消息的头部
 func writeMessageHeader(headerBuf *bytes.Buffer, fixHeader *FixHeader, mutableHeader *bytes.Buffer, payloadLen int32) error {
 	var mutableHeaderLen int64
 	//可变头部是否为空
 	if mutableHeader != nil {
 		mutableHeaderLen = int64(len(mutableHeader.Bytes()))
-	}else {
+	} else {
 		mutableHeaderLen = 0
 	}
 	//计算报文剩余总长度（可变报头+有效载荷）
@@ -82,10 +82,10 @@ type Connect struct {
 	protocolName    string    //协议名，DPIM
 	protocolVersion uint8     //1开始
 	//flags           uint8     //是否采用gzip等
-	keepAliveTime   uint16    //连接间隔时间
-	Payload         string    //JSON
+	keepAliveTime uint16 //连接间隔时间
+	Payload       string //JSON
 
-	enablePayloadGzip bool	  //包含在flags中
+	enablePayloadGzip bool //包含在flags中
 }
 
 func (msg *Connect) Encode(writer io.Writer, proCommon *ProtocolCommon) (err error) {
@@ -105,7 +105,7 @@ func (msg *Connect) Encode(writer io.Writer, proCommon *ProtocolCommon) (err err
 	payloadBuf := new(bytes.Buffer)
 	if msg.enablePayloadGzip {
 		setGzipString(msg.Payload, payloadBuf)
-	}else {
+	} else {
 		setString(msg.Payload, payloadBuf)
 	}
 	//写入头部
@@ -132,7 +132,7 @@ func (msg *Connect) Decode(reader io.Reader, header FixHeader, proCommon *Protoc
 	//协议名
 	msg.protocolName = getString(reader, &remainLen)
 	if msg.protocolName != ProtocolName {
-		return NewMessageError(invalidProNameError+":"+msg.protocolName)
+		return NewMessageError(invalidProNameError + ":" + msg.protocolName)
 	}
 	//协议版本号
 	msg.protocolVersion = getUint8(reader, &remainLen)
@@ -141,7 +141,7 @@ func (msg *Connect) Decode(reader io.Reader, header FixHeader, proCommon *Protoc
 	}
 	//标志位，暂不使用
 	flags := getUint8(reader, &remainLen)
-	msg.enablePayloadGzip = flags&0x80>0
+	msg.enablePayloadGzip = flags&0x80 > 0
 	if flags != 0 && flags != 128 {
 		return NewMessageError(fmt.Sprintf("connect "+invalidFlagError+":%d", flags))
 	}
@@ -150,7 +150,7 @@ func (msg *Connect) Decode(reader io.Reader, header FixHeader, proCommon *Protoc
 	//内容
 	if msg.enablePayloadGzip {
 		msg.Payload = getGzipString(reader, &remainLen)
-	}else {
+	} else {
 		msg.Payload = getString(reader, &remainLen)
 	}
 
@@ -164,15 +164,16 @@ func (msg *Connect) Decode(reader io.Reader, header FixHeader, proCommon *Protoc
  *	回复连接消息
  */
 type ReturnCode uint8
+
 const (
-	RetCodeAccepted = ReturnCode(iota)	//连接成功
-	RetCodeServerUnavailable		//服务器开小差
-	RetCodeBadLoginInfo			//登陆信息错误
-	RetCodeNotAuthorized			//未登陆
-	RetCodeAlreadyConnected			//已经连接过了，错误状态，服务器会断开连接
-	RetCodeConcurrentLogin			//并发登陆
-	RetCodeBadToken					//token错误
-	RetCodeInvalidUid				//uid错误
+	RetCodeAccepted          = ReturnCode(iota) //连接成功
+	RetCodeServerUnavailable                    //服务器开小差
+	RetCodeBadLoginInfo                         //登陆信息错误
+	RetCodeNotAuthorized                        //未登陆
+	RetCodeAlreadyConnected                     //已经连接过了，错误状态，服务器会断开连接
+	RetCodeConcurrentLogin                      //并发登陆
+	RetCodeBadToken                             //token错误
+	RetCodeInvalidUid                           //uid错误
 
 	//每增加一个，下面的errors必须同步增加一个
 
@@ -195,9 +196,9 @@ func (rc ReturnCode) IsValid() bool {
 }
 
 type ConnAck struct {
-	header		FixHeader	//固定头部
+	header FixHeader //固定头部
 	//flags		uint8		//预留
-	ReturnCode	ReturnCode	//状态码
+	ReturnCode ReturnCode //状态码
 }
 
 func (msg *ConnAck) Encode(writer io.Writer, proCommon *ProtocolCommon) (err error) {
@@ -249,7 +250,7 @@ func (msg *ConnAck) Decode(reader io.Reader, header FixHeader, proCommon *Protoc
  *	心跳包
  */
 type PingReq struct {
-	header		FixHeader //固定头部
+	header FixHeader //固定头部
 }
 
 func (msg *PingReq) Encode(writer io.Writer, proCommon *ProtocolCommon) (err error) {
@@ -284,7 +285,7 @@ func (msg *PingReq) Decode(reader io.Reader, header FixHeader, proCommon *Protoc
  *	心跳回应包
  */
 type PingResp struct {
-	header		FixHeader //固定头部
+	header FixHeader //固定头部
 }
 
 func (msg *PingResp) Encode(writer io.Writer, proCommon *ProtocolCommon) (err error) {
@@ -319,13 +320,15 @@ func (msg *PingResp) Decode(reader io.Reader, header FixHeader, proCommon *Proto
  *	断开连接
  */
 type DiscType uint8
+
 const (
-	DiscTypeNone = DiscType(iota) //默认类型，客户端发给服务器的时候使用
-	DiscTypeKickout  //踢出登录，服务器发给客户端，客户端应立即注销
+	DiscTypeNone    = DiscType(iota) //默认类型，客户端发给服务器的时候使用
+	DiscTypeKickout                  //踢出登录，服务器发给客户端，客户端应立即注销
 )
+
 type Disconnect struct {
-	header		FixHeader //固定头部
-	Type		DiscType
+	header FixHeader //固定头部
+	Type   DiscType
 }
 
 func (msg *Disconnect) Encode(writer io.Writer, proCommon *ProtocolCommon) (err error) {
@@ -366,8 +369,8 @@ func (msg *Disconnect) Decode(reader io.Reader, header FixHeader, proCommon *Pro
  *	发送消息
  */
 const (
-	RLevelNoReply = ReplyLevel(iota)	//不需要回复
-	RLevelReplyLater			//业务逻辑返回后回复
+	RLevelNoReply    = ReplyLevel(iota) //不需要回复
+	RLevelReplyLater                    //业务逻辑返回后回复
 	//RLevelReplyNow			//立刻回复（业务逻辑之前）
 
 	rLevelFirstInvalid
@@ -384,13 +387,13 @@ func (rLevel ReplyLevel) HasId() bool {
 }
 
 type SendReq struct {
-	header		FixHeader 	//固定头部
-	ReplyLevel	ReplyLevel	//回复等级（包含在头部中）
-	MessageId	uint16 		//消息id
-	Type		string		//消息类型
-	Payload		string		//消息内容
-	HasData		bool		//是否有二进制数据
-	Data		[]byte		//二进制数据
+	header     FixHeader  //固定头部
+	ReplyLevel ReplyLevel //回复等级（包含在头部中）
+	MessageId  uint16     //消息id
+	Type       string     //消息类型
+	Payload    string     //消息内容
+	HasData    bool       //是否有二进制数据
+	Data       []byte     //二进制数据
 }
 
 func (msg *SendReq) Encode(writer io.Writer, proCommon *ProtocolCommon) (err error) {
@@ -399,10 +402,10 @@ func (msg *SendReq) Encode(writer io.Writer, proCommon *ProtocolCommon) (err err
 	var flags, hasData uint8
 	if msg.HasData {
 		hasData = 1
-	}else {
+	} else {
 		hasData = 0
 	}
-	flags = uint8(msg.ReplyLevel << 1) | (hasData << 3)
+	flags = uint8(msg.ReplyLevel<<1) | (hasData << 3)
 	msg.header.flags = flags
 
 	buf := new(bytes.Buffer)
@@ -414,7 +417,7 @@ func (msg *SendReq) Encode(writer io.Writer, proCommon *ProtocolCommon) (err err
 	payloadBuf := new(bytes.Buffer)
 	if proCommon.EnablePayloadGzip {
 		setGzipString(msg.Payload, payloadBuf)
-	}else {
+	} else {
 		setString(msg.Payload, payloadBuf)
 	}
 	//二进制数据
@@ -458,14 +461,14 @@ func (msg *SendReq) Decode(reader io.Reader, header FixHeader, proCommon *Protoc
 	//内容
 	if proCommon.EnablePayloadGzip {
 		msg.Payload = getGzipString(reader, &remainLen)
-	}else {
+	} else {
 		msg.Payload = getString(reader, &remainLen)
 	}
 	//二进制数据
 	if msg.HasData {
 		//内部自动判断是否gzip
 		msg.Data = getData(reader, &remainLen)
-	}else {
+	} else {
 		msg.Data = nil
 	}
 
@@ -479,9 +482,9 @@ func (msg *SendReq) Decode(reader io.Reader, header FixHeader, proCommon *Protoc
  *	发送消息回执
  */
 type SendResp struct {
-	header		FixHeader 	//固定头部
-	MessageId	uint16 		//所回复的消息id
-	Payload		string		//消息内容
+	header    FixHeader //固定头部
+	MessageId uint16    //所回复的消息id
+	Payload   string    //消息内容
 }
 
 func (msg *SendResp) Encode(writer io.Writer, proCommon *ProtocolCommon) (err error) {
@@ -494,7 +497,7 @@ func (msg *SendResp) Encode(writer io.Writer, proCommon *ProtocolCommon) (err er
 	payloadBuf := new(bytes.Buffer)
 	if proCommon.EnablePayloadGzip {
 		setGzipString(msg.Payload, payloadBuf)
-	}else {
+	} else {
 		setString(msg.Payload, payloadBuf)
 	}
 	//写入头部
@@ -522,7 +525,7 @@ func (msg *SendResp) Decode(reader io.Reader, header FixHeader, proCommon *Proto
 	//内容
 	if proCommon.EnablePayloadGzip {
 		msg.Payload = getGzipString(reader, &remainLen)
-	}else {
+	} else {
 		msg.Payload = getString(reader, &remainLen)
 	}
 
