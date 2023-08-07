@@ -1,6 +1,7 @@
 package gosocket
 
 // Run start the server
+// This is the entry point of the whole framework
 // The appConfig is used to configure the server
 // The user is used to customize the user identification process
 // The log is used to log any errors happens during the process

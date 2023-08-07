@@ -13,6 +13,7 @@ const (
 	kListenFd = 3
 )
 
+// Server is the class to handle incoming requests by serving and listening
 type Server struct {
 	addr       string //监听地址 listen address
 	isGraceful bool   //是否使用优雅重启 whether to use graceful restart
@@ -55,21 +56,25 @@ func (server *Server) ListenAndServe(config *tls.Config) {
 	server.serve(config)
 }
 
+// serve Start serving
+// `config` pass nil to disable tls
 func (server *Server) serve(config *tls.Config) {
 	pid := os.Getpid()
-	//开始处理连接
+	//Start to handle the connections
 	for {
 		acceptConn, err := server.listener.Accept()
 		if config != nil {
 			acceptConn = tls.Server(acceptConn, config)
 		}
 		if err != nil {
-			//如果listener被关闭，说明子进程已经启动，直接跳出循环即可
+			//if the listener is closed, then it could be the child process has started
 			if strings.HasSuffix(err.Error(), "use of closed network connection") {
+				//stop the loop
 				break
 			}
 			panic(err)
 		}
+		//For each connection, create a corresponding ClientConn instance to handle it
 		client := NewClientConn(acceptConn)
 		if client != nil {
 			//开始读和写队列

@@ -30,8 +30,8 @@ func Router(controllerName string, controller IController) {
 const (
 	StatusSuccess = Status(iota)
 
-	StatusError         = Status(4) //已知的错误，会返回message给客户端
-	StatusInternalError = Status(5) //未知的内部错误，如数据库异常等，会打印日志
+	StatusError         = Status(4) //Format error, always return with a message
+	StatusInternalError = Status(5) //Unknown internal error, always found with a log record under runtime directory
 )
 
 type Status uint8
@@ -39,9 +39,9 @@ type Status uint8
 // ResponseBody the format of the server response
 // 返回数据
 type ResponseBody struct {
-	Status  Status    `json:"status"`
-	Message string    `json:"message,omitempty"`
-	Data    IRespData `json:"data"`
+	Status  Status    `json:"status"`            // Status code
+	Message string    `json:"message,omitempty"` // Message to the client to show the exact error
+	Data    IRespData `json:"data"`              // Real data sent to the client
 }
 
 type IRespData interface{}
@@ -83,7 +83,7 @@ func ProcessPayload(user IUser, payloadType string, payload string) (response *R
 // This function will match the request to a certain action under the controller by reflecting
 func ProcessPayloadWithData(user IUser, payloadType string, payload string, data []byte) (response *ResponseBody) {
 	defer func() {
-		var message = "服务器开小差啦~"
+		var message = "Internal BackEnd error"
 		var status = StatusError
 		//捕获异常
 		if r := recover(); r != nil {
@@ -108,64 +108,68 @@ func ProcessPayloadWithData(user IUser, payloadType string, payload string, data
 	}()
 	//检查payload长度
 	if len(payload) > kMaxPayloadLength {
-		raiseError("消息太长了哦~")
+		raiseError("length of payload exceeds the max length")
 	}
 	//解析type
 	strs := strings.Split(payloadType, ".")
 	if len(strs) < 2 {
-		raiseError("类型应该为controller.action哦~")
+		raiseError("payload type should be in the format of `controller.action`")
 	}
 	controllerName := strings.ToLower(strs[0])
 	actionName := strs[1]
-	//获取controller类型
+	//Get type of the controller
 	controllerPtr := controllerMap[controllerName]
 	if controllerPtr == nil {
-		raiseError("controller:" + controllerName + "不存在哦~")
+		raiseError("controller:" + controllerName + "not exist")
 	}
 	controllerReflectVal := reflect.ValueOf(controllerPtr)
 	controllerType := reflect.Indirect(controllerReflectVal).Type()
 
-	//获取controller
+	//Get controller
 	vc := reflect.New(controllerType)
 	execController, ok := vc.Interface().(IController)
 	if !ok {
 		panic("controller is not IController")
 	}
-	//初始化controller
+	//Initialize controller
 	execController.Init(user, data)
 
-	//初始化调用参数
-	paramPtr := execController.GetActionParamMap()[actionName]
+	//Get action&param map from child controller
+	paramMap := execController.GetActionParamMap()
+	if paramMap == nil {
+		raiseError("Failed to find ActionParam map for controller:" + controllerName)
+	}
+	paramPtr := paramMap[actionName]
 	if paramPtr == nil {
-		raiseError("controller:" + controllerName + "的action:" + actionName + "不存在哦~")
+		raiseError("Failed to find corresponding param in ActionParam map for action:" + actionName + " in controller:" + controllerName)
 	}
 	paramReflectVal := reflect.ValueOf(paramPtr)
 	paramType := reflect.Indirect(paramReflectVal).Type()
-	//获取param
+	//Get the struct type of payload
 	paramVal := reflect.New(paramType)
 	paramInt := paramVal.Interface()
-	//payload为空字符串的时候不解析
+	//Only if payload exists
 	if len(payload) > 0 {
-		//解析载荷,不使用jsons包中的函数，因为要捕捉错误
+		//Decode payload into param
 		err := json.Unmarshal([]byte(payload), paramInt)
 		if err != nil {
-			raiseError("参数类型错了哦~")
+			raiseError("Failed to decode payload into param for action:" + actionName + " in controller:" + controllerName)
 		}
 	}
-	//初始化返回参数
+	//Initialize response body
 	response = &ResponseBody{}
-	//默认为错误
+	//Default error
 	response.Data = struct{}{}
 	response.Status = StatusError
 	responseVal := reflect.ValueOf(response)
-	//调用action
+	//find action by name
 	method := vc.MethodByName(actionName)
 	if !method.IsValid() {
-		raiseError("action不存在哦~")
+		raiseError("Action:" + actionName + " in controller:" + controllerName + " not found")
 	}
 	//before hook
 	execController.BeforeAction(payload)
-	//执行action
+	//run action
 	method.Call([]reflect.Value{paramVal, responseVal})
 	//after hook
 	execController.AfterAction(response)

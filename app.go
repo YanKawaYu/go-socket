@@ -2,7 +2,6 @@ package gosocket
 
 import (
 	"crypto/tls"
-	"fmt"
 	"os"
 )
 
@@ -24,11 +23,12 @@ type AppConfig struct {
 	TlsKey    string //The key used by tls TLS密钥
 }
 
+// App is the entry class to start the server
 type App struct {
-	Server  *Server
-	Log     ILogger
-	FastLog IFastLogger
-	Config  *AppConfig
+	Server  *Server     //Responsible for listening and serving requests
+	Config  *AppConfig  //Same as appConfig in the Run function
+	Log     ILogger     //Same as log in the Run function
+	FastLog IFastLogger //Same as fastLog in the Run function
 }
 
 func NewApp() *App {
@@ -46,8 +46,6 @@ func (app *App) Run(appConfig *AppConfig, log ILogger, fastLog IFastLogger) {
 	defer func() {
 		if e := recover(); e != nil {
 			TcpApp.Log.Error(e)
-			//同时直接输出到控制台，方便查错
-			fmt.Println(e)
 		}
 	}()
 	if log == nil || fastLog == nil {
@@ -67,19 +65,17 @@ func (app *App) Run(appConfig *AppConfig, log ILogger, fastLog IFastLogger) {
 	}
 	//创建一个server
 	app.Server = NewServer(app.Config.TcpAddr, isGraceful)
-	//如果开启了Tls
+	//Whether to enable tls
 	if app.Config.TlsEnable {
-		//tls证书配置
+		//tls certificate
 		config := &tls.Config{}
 		certificate, err := tls.LoadX509KeyPair(app.Config.TlsCert, app.Config.TlsKey)
 		if err != nil {
 			panic(err)
 		}
 		config.Certificates = []tls.Certificate{certificate}
-		//TSL启动服务器
 		app.Server.ListenAndServe(config)
 	} else {
-		//非TSL启动服务器
 		app.Server.ListenAndServe(nil)
 	}
 }

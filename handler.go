@@ -24,12 +24,13 @@ const (
 	kAccessLogDuration = "duration"
 )
 
-// Set a class that implements IUser to do identification
+// Set a class that implements IUser to do identification in the login process
 // 设置登陆验证类
 func setAuthUser(user IUser) {
 	authUser = user
 }
 
+// MessageHandler is the class responsible for processing messages from client and generating responses messages
 type MessageHandler struct {
 	user     IUser                //用户信息
 	jobChan  chan Job             //发出消息任务队列

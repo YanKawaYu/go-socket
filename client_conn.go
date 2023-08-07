@@ -10,10 +10,13 @@ import (
 	"time"
 )
 
+// kQueueLength is used to set the max amount of jobs waiting to be sent.
+// This limit is to avoid running out of memory in extreme cases
 // 任务队列的长度
 const kQueueLength = 200
 
-// Receipt 用于任务完成的通知
+// Receipt is used to get notified when the message is sent
+// 用于任务完成的通知
 type Receipt chan struct{}
 
 func (receipt Receipt) Wait() {
@@ -21,17 +24,23 @@ func (receipt Receipt) Wait() {
 	<-receipt
 }
 
+// Job is used to store the message that is about to be sent out
 type Job struct {
-	Message packet.IMessage
-	Receipt Receipt
+	Message packet.IMessage // Message is about to be sent
+	Receipt Receipt         // Receipt is used to get notified when the message is sent
 }
 
+// ClientConn is used to handle individual valid connection coming to the server
+// It contains three threads including Reading thread, writing thread and handling thread
+// Reading thread is used to read and decode input data into messages, then put those messages into Handling thread
+// Writing thread is used to send all the response messages back as output data
+// Handling thread is used to process all the incoming messages from Reading thread and generate response messages
 type ClientConn struct {
 	conn       net.Conn
-	clientIp   string
-	jobChan    chan Job        //发出消息任务队列
-	handler    *MessageHandler //消息处理
-	msgManager *packet.MessageManager
+	clientIp   string                 //Used to store the ip address of the client
+	jobChan    chan Job               //Used to store all the jobs that are about to be sent
+	handler    *MessageHandler        //Used to handle all the messages coming in
+	msgManager *packet.MessageManager //Used to help encoding and decoding messages
 }
 
 func NewClientConn(conn net.Conn) (client *ClientConn) {
@@ -59,10 +68,13 @@ func NewClientConn(conn net.Conn) (client *ClientConn) {
 }
 
 func (client *ClientConn) Start() {
+	//Reading thread
 	//读线程
 	go client.startReader()
+	//Writing thread
 	//写线程
 	go client.startWriter()
+	//Handling thread
 	//处理消息
 	go client.handler.Start()
 }
