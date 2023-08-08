@@ -6,10 +6,11 @@ import (
 )
 
 type IUser interface {
-	// Auth Get user information from the connect info
+	// Auth Check whether the login information provided by the client is valid
 	// 获取用户信息
 	Auth(payload string, ip string) (uid int64, code packet.ReturnCode)
 	// Login Change the user status on the server, mark the user is online
+	// Return RetCodeAccepted to proceed the login process, otherwise to close this connection
 	// 登陆
 	Login(uid int64) packet.ReturnCode
 	// Logout Change the user status on the server, mark the user is offline

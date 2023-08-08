@@ -31,15 +31,23 @@ func setAuthUser(user IUser) {
 }
 
 // MessageHandler is the class responsible for processing messages from client and generating responses messages
+// This class is an essential member of ClientConn, it handles most of the time-consuming works
 type MessageHandler struct {
-	user     IUser                //用户信息
-	jobChan  chan Job             //发出消息任务队列
-	workChan chan packet.IMessage //收到消息任务队列
-	ip       string               //客户端ip
-	isStop   bool                 //是否停止
+	// Used to store and validate user information
+	//用户信息
+	user IUser
+
+	// Used to store all the messages that about to be sent
+	//发出消息任务队列
+	jobChan chan Job
+	// Used to store all the messages that come from the Reading thread
+	//收到消息任务队列
+	workChan chan packet.IMessage
+
+	ip     string // client ip
+	isStop bool   // whether the handler has stopped
 }
 
-// NewMessageHandler Create a new message handler
 func NewMessageHandler(jobChan chan Job, ip string) *MessageHandler {
 	handler := &MessageHandler{
 		jobChan:  jobChan,
@@ -192,7 +200,8 @@ func (handler *MessageHandler) handleConnect(msg *packet.Connect) (isConnect boo
 		isConnect = returnCode == packet.RetCodeAccepted
 		//处理时间
 		processDuration := fmt.Sprintf("%.3f", float32(time.Now().Sub(startTime))/float32(time.Second))
-		//记录日志
+
+		//Log a record
 		message := ""
 		if returnCode != packet.RetCodeAccepted {
 			message = packet.ConnectionErrors[returnCode].Error()
@@ -206,7 +215,7 @@ func (handler *MessageHandler) handleConnect(msg *packet.Connect) (isConnect boo
 			zap.String(kAccessLogMessage, message),
 			zap.String(kAccessLogDuration, processDuration),
 		}
-		//添加自定义连接信息
+		//Add custom connect info
 		connectInfo = append(connectInfo, handler.user.GetConnectInfo()...)
 		TcpApp.FastLog.Info("connect", connectInfo...)
 	}()
@@ -214,6 +223,7 @@ func (handler *MessageHandler) handleConnect(msg *packet.Connect) (isConnect boo
 	var uid int64
 	uid, returnCode = handler.user.Auth(msg.Payload, handler.ip)
 	if returnCode == packet.RetCodeAccepted && uid != 0 {
+		//We need locks here to avoid the situation of same account trying to log in from different devices simultaneously
 		//获取锁
 		hasLock := handler.user.RequireLock(uid)
 		if hasLock {
@@ -221,9 +231,12 @@ func (handler *MessageHandler) handleConnect(msg *packet.Connect) (isConnect boo
 			returnCode = handler.user.Login(uid)
 			//如果登陆成功，在当前服务器上记录在线状态
 			if returnCode == packet.RetCodeAccepted {
-				//如果之前连接过，说明在新旧连接在同一台服务器上，需要将旧的连接移除
+				//Check whether there is another connection with the same user on the current server
 				oldHandler := GetClientPool().GetClientByUid(handler.user.GetUid())
+				//If the user is connecting on the current server on another connection
+				//如果之前连接过，说明在新旧连接在同一台服务器上，需要将旧的连接移除
 				if oldHandler != nil {
+					//Send KickOut message to remove the old connection
 					//通知客户端连接断开
 					msgDisconnect := &packet.Disconnect{
 						Type: packet.DiscTypeKickout,
@@ -233,6 +246,7 @@ func (handler *MessageHandler) handleConnect(msg *packet.Connect) (isConnect boo
 					oldHandler.Stop(true)
 					TcpApp.Log.Debugf("kick out same server account %d", uid)
 				}
+				//Mark the user with the latest connection
 				//设置最新的在线状态
 				GetClientPool().SetClientByUid(handler, handler.user.GetUid())
 			}
@@ -254,6 +268,7 @@ func (handler *MessageHandler) handleSendReq(msg *packet.SendReq) {
 		}
 	}()
 	switch msg.ReplyLevel {
+	//Messages that don't need to reply
 	case packet.RLevelNoReply:
 		startTime := time.Now()
 		//处理不需要回复的消息
@@ -271,12 +286,16 @@ func (handler *MessageHandler) handleSendReq(msg *packet.SendReq) {
 		//添加自定义请求信息
 		sendReqInfo = append(sendReqInfo, handler.user.GetSendReqInfo()...)
 		TcpApp.FastLog.Info("sendReqNoReply", sendReqInfo...)
+	//Messages that need to be replied
 	case packet.RLevelReplyLater:
 		startTime := time.Now()
 		//业务逻辑
 		response := ProcessPayloadWithData(handler.user, msg.Type, msg.Payload, msg.Data)
+		//To find out whether there are slow requests
 		//处理时间
 		processDuration := fmt.Sprintf("%.3f", float32(time.Now().Sub(startTime))/float32(time.Second))
+
+		//Filter long parameters to avoid logging too many in the log file
 		//检查参数中是否有过长的
 		var paramMap map[string]json.RawMessage
 		err := json.Unmarshal([]byte(msg.Payload), &paramMap)
@@ -336,8 +355,9 @@ func (handler *MessageHandler) Submit(message packet.IMessage) {
 	job := Job{
 		Message: message,
 	}
-	//任务队列未被关闭
+	//Make sure the channel is opened
 	if handler.jobChan != nil {
+		//Ignore the message if the queue is full
 		select {
 		case handler.jobChan <- job:
 		default:
@@ -355,11 +375,13 @@ func (handler *MessageHandler) submitSync(message packet.IMessage) {
 		Message: message,
 		Receipt: make(Receipt),
 	}
-	//任务队列未被关闭
+	//Make sure the channel is opened
 	if handler.jobChan != nil {
+		//The select block is essential here or else there could be a dead lock
 		//加入任务队列，必须判断channel是否满，否则会死锁
 		select {
 		case handler.jobChan <- job:
+			//Block until the message is sent
 			//阻塞直到消息发送完成
 			job.Receipt.Wait()
 		default:

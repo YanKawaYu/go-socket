@@ -6,12 +6,16 @@ import (
 	"strings"
 )
 
+// Go language can't create instance from class name dynamically
+// therefore I use a map to reflect the string to the class here
+// Just use the Router function to add a new route with a new controller
 // 由于Go无法动态创建类型，故使用map将字符串映射到类型
 var (
 	controllerMap map[string]IController
 )
 
-// 最大请求长度，16kb
+// The max payload length is 16kb
+// 最大请求长度
 const (
 	kMaxPayloadLength = (1 << 14) - 1
 )
