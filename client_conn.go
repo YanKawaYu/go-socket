@@ -51,6 +51,7 @@ func NewClientConn(conn net.Conn) (client *ClientConn) {
 		}
 	}()
 	clientIp := conn.RemoteAddr().String()
+	//Get ip only
 	//忽略端口号，只取ip
 	ipAndPort := strings.Split(clientIp, ":")
 	if len(ipAndPort) > 0 {
@@ -99,7 +100,7 @@ func (client *ClientConn) startWriter() {
 		if job.Receipt != nil {
 			close(job.Receipt)
 		}
-		//如果出错
+
 		if err != nil {
 			//Network error in tls connection
 			//tls中断连接的错误
@@ -114,6 +115,7 @@ func (client *ClientConn) startWriter() {
 			TcpApp.Log.Error(err)
 			return
 		}
+		//If the job just sent is Disconnect message, stop the Writing Thread immediately
 		//断开连接后确保马上返回
 		if _, ok := job.Message.(*packet.Disconnect); ok {
 			return
@@ -147,6 +149,7 @@ func (client *ClientConn) startReader() {
 		if timeoutInterval > 0 {
 			client.conn.SetReadDeadline(time.Now().Add(timeoutInterval * time.Second))
 		}
+		//Get the message
 		//获取消息
 		msg, err := client.msgManager.DecodeMessage(client.conn)
 		if err != nil {

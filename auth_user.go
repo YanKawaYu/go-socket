@@ -49,41 +49,85 @@ type AuthUser struct {
 	Uid int64
 }
 
+// Refresh Override this function to refresh the online status of the user
+// This function will be called every 3 minutes as long as the connection is still on
+// It is recommended that you can use REDIS to maintain a global online status for all users across all servers
+// REDIS is an open source (BSD licensed), in-memory data structure store. It can be used as a cache database
+//
+// You can save the user's online status with an expiry time(e.g. 5min) in REDIS
+// Then you can implement this function to reset the expiry time so that the user will be marked online all the time
+//
+// If you plan to deploy only one server, you can choose go map
 func (user *AuthUser) Refresh() {}
 
+// GetUid This function is rarely changed
 func (user *AuthUser) GetUid() int64 {
 	return user.Uid
 }
 
+// GetConnectInfo Override this function to put extra connect info into the log
+// For example, device info, network info, system info etc.
 func (user *AuthUser) GetConnectInfo() []zapcore.Field {
 	return []zapcore.Field{}
 }
 
+// GetSendReqInfo Override this function to put extra request info into the log
+// For example, device info, network info, system info etc.
 func (user *AuthUser) GetSendReqInfo() []zapcore.Field {
 	return []zapcore.Field{}
 }
 
+// HandleNoReplyReq Override this function to handle the requests that don't need to be responded
+// These kinds of requests are normally insignificance.
+// Even if they got lost in the network, it doesn't matter.
+// Cutting off these kinds of response will be an improvement to the crowded network
 func (user *AuthUser) HandleNoReplyReq(payloadType string, payload string) {}
 
+// IsLogin This function is rarely changed
 func (user *AuthUser) IsLogin() bool {
 	return user.Uid != 0
 }
 
+// RequireLock Override this function to get a lock before operating the user's data
+// As the login process `handleConnect` in MessageHandler
+// We need locks here to avoid the situation of same account trying to log in from different devices simultaneously
+//
+// It is recommended to use REDIS to record different lock for different user across different servers
+// If you plan to deploy only one server, you can choose sync.Mutex
 func (user *AuthUser) RequireLock(uid int64) bool {
 	return true
 }
 
+// ReleaseLock Implement this function to release the lock after operating the user's data
+// This function goes with RequireLock
 func (user *AuthUser) ReleaseLock(uid int64) {}
 
+// Auth Override this function to validate the user's login information
+// It is recommended to use payload to transmit auth token instead of password md5
+//
+// If the login information is valid, then return the user's uid and packet.RetCodeAccepted
+// If the login information is invalid, then return an invalid uid and packet.RetCodeBadLoginInfo
+// For more code, see packet.ReturnCode
+// It is recommended to use -1 as invalid uid, since 0 is used as not login
 func (user *AuthUser) Auth(payload string, ip string) (uid int64, code packet.ReturnCode) {
 	return -1, packet.RetCodeAccepted
 }
 
+// Login Override this function to record user's online status
+//
+// If you have multiple servers, you need to record which server the user is on
+// And for the future real-time notification you need to make sure the user is currently connected to only one server
+//
+// You should return packet.RetCodeAccepted if everything goes well
+// Or else you can return packet.RetCodeBadLoginInfo to block the login process
 func (user *AuthUser) Login(uid int64) packet.ReturnCode {
 	user.Uid = uid
 	return packet.RetCodeAccepted
 }
 
+// Logout Override this function to mark the user is offline
+// The param `isKickOut` is used to mark whether the user is kicked out by the user himself
+// If the user reconnect on the same server, it will cause the old connection to be kicked out (It usually happens under bad network)
 func (user *AuthUser) Logout(isKickOut bool) {
 	user.Uid = 0
 }

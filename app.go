@@ -51,11 +51,10 @@ func (app *App) Run(appConfig *AppConfig, log ILogger, fastLog IFastLogger) {
 	if log == nil || fastLog == nil {
 		panic("log or fastLog can't be nil")
 	}
-	//配置文件
 	app.Config = appConfig
-	//日志
 	app.Log = log
 	app.FastLog = fastLog
+	//Check from environment variable whether it should initialize graceful restart
 	//从环境变量中判断是否为优雅重启
 	isGraceful := false
 	if os.Getenv(GracefulEnvironKey) != "" {

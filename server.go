@@ -90,7 +90,6 @@ func (server *Server) serve(config *tls.Config) {
 	//Wait until all connections have closed
 	server.listener.WaitAllFinished()
 	fmt.Printf("All connection were closed, process %d is shutting down...\n", pid)
-	//关闭信号通道
 	close(server.signalChan)
 }
 
@@ -99,10 +98,12 @@ func (server *Server) serve(config *tls.Config) {
 func (server *Server) getTCPListener(port int) *net.TCPListener {
 	var listener net.Listener
 	var err error
-	//如果是优雅启动 if graceful restart
+	//If the server has restarted gracefully
+	//Then the address and the port will be occupied, so the server should listen from the file that inherited from parent process
+	//如果是优雅启动
 	if server.isGraceful {
+		//fd 3 is inherited from parent process, fd 0 is stdin, fd 1 is stdout, fd 2 is stderr
 		//从父进程继承下来的文件描述符3监听，文件描述符012分别为stdin、stdout、stderr
-		//3 fds that are inherited from parent process, including stdin, stdout, stderr
 		file := os.NewFile(kListenFd, "")
 		listener, err = net.FileListener(file)
 		if err != nil {
@@ -113,7 +114,6 @@ func (server *Server) getTCPListener(port int) *net.TCPListener {
 		if port > 0 {
 			address += ":" + strconv.Itoa(port)
 		}
-		//从指定端口监听
 		listener, err = net.Listen("tcp", address)
 		if err != nil {
 			panic(err)

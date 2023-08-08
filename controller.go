@@ -30,6 +30,7 @@ func Router(controllerName string, controller IController) {
 	controllerMap[controllerName] = controller
 }
 
+// These are all the status codes that embedded in ResponseBody
 // 返回状态码
 const (
 	StatusSuccess = Status(iota)
@@ -89,12 +90,14 @@ func ProcessPayloadWithData(user IUser, payloadType string, payload string, data
 	defer func() {
 		var message = "Internal BackEnd error"
 		var status = StatusError
-		//捕获异常
 		if r := recover(); r != nil {
+			//If an error implemented the `IUserError` interface, then it is a user customize error
+			//Just read the message from `ShowError` function
 			//如果是用户自定义错误，直接返回错误内容
 			if userError, ok := r.(IUserError); ok {
 				message = userError.ShowError()
 			} else {
+				//All the other errors need to be logged
 				//其他错误需要记录日志
 				err := getRecoverError(r)
 				TcpApp.Log.Error(err)
@@ -102,6 +105,7 @@ func ProcessPayloadWithData(user IUser, payloadType string, payload string, data
 			}
 			response = nil
 		}
+		//There must be a response. So if there is no response from the action, generate one
 		//如果没有返回，提示开小差
 		if response == nil {
 			response = &ResponseBody{
@@ -110,10 +114,10 @@ func ProcessPayloadWithData(user IUser, payloadType string, payload string, data
 			}
 		}
 	}()
-	//检查payload长度
 	if len(payload) > kMaxPayloadLength {
 		raiseError("length of payload exceeds the max length")
 	}
+	//Parse the payload type
 	//解析type
 	strs := strings.Split(payloadType, ".")
 	if len(strs) < 2 {
