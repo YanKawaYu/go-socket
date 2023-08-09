@@ -159,21 +159,26 @@ func (handler *MessageHandler) Start() {
 // Stop handling messages
 // 停止处理消息
 func (handler *MessageHandler) Stop(isKickOut bool) {
+	//If the handler is already stopped, then return directly to avoid being called twice
 	//如果停止过了，直接返回，避免stop在短时间内两次调用导致用户在线状态被清空
 	if handler.isStop {
 		return
 	}
 	handler.isStop = true
+	//If the work channel hasn't been closed, close it now
 	//如果工作队列未关闭，关闭
 	if handler.workChan != nil {
 		close(handler.workChan)
 		handler.workChan = nil
 	}
+	//If the user has logged in before
 	//如果已登陆，注销
 	if handler.user.IsLogin() {
+		//Make sure that the connection wasn't kicked out by himself before removing the online status
 		//如果不是被同一账号登陆踢出
 		//否则可能会移除掉最新登陆的状态
 		if !isKickOut {
+			//Remove online status
 			//移除本地记录的在线状态
 			GetClientPool().RemoveClientByUid(handler.user.GetUid())
 		}
@@ -309,7 +314,7 @@ func (handler *MessageHandler) handleSendReq(msg *packet.SendReq) {
 				tmpMap[k] = v
 			}
 		}
-		//记录日志
+		//Log a record
 		sendReqInfo := []zapcore.Field{
 			zap.String(kAccessLogType, msg.Type),
 			zap.String(kAccessLogIp, handler.ip),
@@ -319,7 +324,7 @@ func (handler *MessageHandler) handleSendReq(msg *packet.SendReq) {
 			zap.String(kAccessLogMessage, response.Message),
 			zap.String(kAccessLogDuration, processDuration),
 		}
-		//添加自定义请求信息
+		//Add custom request info
 		sendReqInfo = append(sendReqInfo, handler.user.GetSendReqInfo()...)
 		TcpApp.FastLog.Info("sendReq", sendReqInfo...)
 		//答复结果
@@ -377,7 +382,7 @@ func (handler *MessageHandler) submitSync(message packet.IMessage) {
 	}
 	//Make sure the channel is opened
 	if handler.jobChan != nil {
-		//The select block is essential here or else there could be a dead lock
+		//The select block is essential here or else there could be a deadlock
 		//加入任务队列，必须判断channel是否满，否则会死锁
 		select {
 		case handler.jobChan <- job:

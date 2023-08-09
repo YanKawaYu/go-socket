@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Listener is a wrapper of net.TCPListener
 type Listener struct {
 	*net.TCPListener
 	// record all the connections
@@ -26,6 +27,7 @@ func (listener *Listener) WaitAllFinished() {
 	listener.waitGroup.Wait()
 }
 
+// Accept a new connection
 func (listener *Listener) Accept() (net.Conn, error) {
 	tcpConn, err := listener.AcceptTCP()
 	if err != nil {

@@ -4,8 +4,13 @@ import (
 	"errors"
 )
 
-// 实现了这个接口的错误，panic的时候，就会返回4，同时
+// IUserError
+// Whenever you panic an error that implements this interface in the action, the response message will be the return result of ShowError
+// For example, {"status":4, "message":"this is an error"}
+// You will find the code in ProcessPayloadWithData function
+// 实现了这个接口的错误，panic的时候，就会返回4，同时提示ShowError的内容作为错误消息
 type IUserError interface {
+	// ShowError Implement this function and return a string as the `message` field of the response message
 	ShowError() string
 }
 

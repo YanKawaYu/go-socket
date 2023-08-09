@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+// Client is a class responsible for connecting to the server by socket
+// Make sure the port and the isTls value are the same as the ones on server
 type Client struct {
 	ip     string
 	port   int

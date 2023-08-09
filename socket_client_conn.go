@@ -20,15 +20,25 @@ type ClientConnInterface interface {
 	OnDisconnect()
 }
 
+// SocketClientConn is a class inside Client responsible for connecting to the server
 type SocketClientConn struct {
-	cInterface  ClientConnInterface
-	conn        net.Conn
-	jobChan     chan Job             //任务队列
-	connAckChan chan *packet.ConnAck //连接回复队列
-	reqMsgId    uint16               //协议自增消息id
-	msgIdLock   *sync.RWMutex
-	reqMsgMap   map[uint16]SendReqCallback //等待回复的消息map
-	mapLock     *sync.RWMutex
+	cInterface ClientConnInterface
+	conn       net.Conn
+	jobChan    chan Job //任务队列
+
+	// connAckChan is the queue for ConnAck message
+	//连接回复队列
+	connAckChan chan *packet.ConnAck
+
+	// reqMsgId is an autoincrement message id
+	//协议自增消息id
+	reqMsgId  uint16
+	msgIdLock *sync.RWMutex
+
+	// reqMsgMap is used to store all the message callbacks
+	//等待回复的消息map
+	reqMsgMap map[uint16]SendReqCallback
+	mapLock   *sync.RWMutex
 
 	msgManager *packet.MessageManager //协议层的包管理器
 	log        ILogger                //输出日志用
@@ -142,8 +152,11 @@ func (client *SocketClientConn) Connect(loginInfo string) error {
 	connectMsg := &packet.Connect{
 		Payload: loginInfo,
 	}
+	//Add the message into the queue and block until the message is sent
 	//将消息加入任务队列，阻塞直到消息发送完成
 	client.sync(connectMsg)
+	//Block again until there is a ConnAck message
+	//This is how the connect message works
 	//阻塞等待连接回复
 	ack := <-client.connAckChan
 	return packet.ConnectionErrors[ack.ReturnCode]
@@ -163,6 +176,7 @@ func (client *SocketClientConn) SendRequest(payloadType string, payload string, 
 	msgId := client.reqMsgId
 	client.reqMsgId++
 	client.msgIdLock.Unlock()
+	//If there is a callback for the request, save it into a different map
 	//如果回调不为空，加入等待回复的消息map
 	if callback != nil {
 		client.mapLock.Lock()
@@ -173,7 +187,6 @@ func (client *SocketClientConn) SendRequest(payloadType string, payload string, 
 	if len(data) > 0 {
 		hasData = true
 	}
-	//协议包
 	sendReqMsg := &packet.SendReq{
 		MessageId:  msgId,
 		ReplyLevel: replyLevel,
@@ -231,8 +244,8 @@ func (client *SocketClientConn) sync(message packet.IMessage) {
 		Message: message,
 		Receipt: make(Receipt),
 	}
-	//加入任务队列
 	client.jobChan <- job
+	//Block until the message is sent
 	//阻塞直到消息发送完成
 	job.Receipt.Wait()
 }
