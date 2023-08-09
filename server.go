@@ -15,8 +15,7 @@ const (
 
 // Server is the class to handle incoming requests by serving and listening
 type Server struct {
-	addr       string //监听地址 listen address
-	isGraceful bool   //是否使用优雅重启 whether to use graceful restart
+	addr string //监听地址 listen address
 
 	signalChan chan os.Signal //接收重启信号的通道 the channel to receive restart signal
 	listener   *Listener
@@ -24,10 +23,9 @@ type Server struct {
 
 // NewServer Create a new server
 // 创建一个新的服务器
-func NewServer(addr string, isGraceful bool) *Server {
+func NewServer(addr string) *Server {
 	server := &Server{
 		addr:       addr,
-		isGraceful: isGraceful,
 		signalChan: make(chan os.Signal),
 	}
 	return server
@@ -98,10 +96,11 @@ func (server *Server) serve(config *tls.Config) {
 func (server *Server) getTCPListener(port int) *net.TCPListener {
 	var listener net.Listener
 	var err error
+	//Check from environment variable whether it should initialize graceful restart
 	//If the server has restarted gracefully
 	//Then the address and the port will be occupied, so the server should listen from the file that inherited from parent process
-	//如果是优雅启动
-	if server.isGraceful {
+	//从环境变量中判断是否为优雅重启
+	if os.Getenv(GracefulEnvironKey) != "" {
 		//fd 3 is inherited from parent process, fd 0 is stdin, fd 1 is stdout, fd 2 is stderr
 		//从父进程继承下来的文件描述符3监听，文件描述符012分别为stdin、stdout、stderr
 		file := os.NewFile(kListenFd, "")

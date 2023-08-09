@@ -2,7 +2,6 @@ package gosocket
 
 import (
 	"crypto/tls"
-	"os"
 )
 
 var (
@@ -54,16 +53,10 @@ func (app *App) Run(appConfig *AppConfig, log ILogger, fastLog IFastLogger) {
 	app.Config = appConfig
 	app.Log = log
 	app.FastLog = fastLog
-	//Check from environment variable whether it should initialize graceful restart
-	//从环境变量中判断是否为优雅重启
-	isGraceful := false
-	if os.Getenv(GracefulEnvironKey) != "" {
-		isGraceful = true
-		//initialize graceful restart
-		InitGracefulRestart()
-	}
+	//Initialize graceful restart
+	InitGracefulRestart()
 	//创建一个server
-	app.Server = NewServer(app.Config.TcpAddr, isGraceful)
+	app.Server = NewServer(app.Config.TcpAddr)
 	//Whether to enable tls
 	if app.Config.TlsEnable {
 		//tls certificate
