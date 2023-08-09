@@ -1,9 +1,9 @@
 package packet
 
 import (
-	"io"
 	"bytes"
 	"compress/gzip"
+	"io"
 	"io/ioutil"
 )
 
@@ -37,6 +37,7 @@ func getUint16(r io.Reader, packetRemaining *int32) uint16 {
 
 func getString(r io.Reader, packetRemaining *int32) string {
 	strLen, lenLen := decodeLength(r)
+	//Minus the size of the length
 	//减去长度所占的字节数
 	*packetRemaining -= int32(lenLen)
 
@@ -55,6 +56,7 @@ func getString(r io.Reader, packetRemaining *int32) string {
 
 func getGzipString(r io.Reader, packetRemaining *int32) string {
 	gzipLen, lenLen := decodeLength(r)
+	//Minus the size of the length
 	//减去长度所占的字节数
 	*packetRemaining -= int32(lenLen)
 
@@ -69,6 +71,7 @@ func getGzipString(r io.Reader, packetRemaining *int32) string {
 	*packetRemaining -= int32(gzipLen)
 
 	result := ""
+	//To avoid panic
 	//只有长度大于0时才进行解析，否则会出错
 	if gzipLen > 0 {
 		gzipBuf := bytes.NewBuffer(b)
@@ -99,6 +102,7 @@ func getData(r io.Reader, packetRemaining *int32) []byte {
 		panic(err)
 	}
 	*packetRemaining -= int32(dataLen)
+	//Check the first two bytes as magic number
 	//检查前两个字节，判断二进制数据类型
 	if dataLen > 1 {
 		//是否gzip的magic number
@@ -158,7 +162,7 @@ func boolToByte(val bool) byte {
 	return byte(0)
 }
 
-//返回解析出来的长度，以及长度所占的字节数
+// 返回解析出来的长度，以及长度所占的字节数
 func decodeLength(r io.Reader) (int32, int) {
 	var v int32
 	var buf [1]byte
@@ -172,7 +176,7 @@ func decodeLength(r io.Reader) (int32, int) {
 		v |= int32(b&0x7f) << shift
 
 		if b&0x80 == 0 {
-			return v, i+1
+			return v, i + 1
 		}
 		shift += 7
 	}

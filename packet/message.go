@@ -29,19 +29,21 @@ func (mt MessageType) IsValid() bool {
 	return mt >= MsgConnect && mt < msgTypeFirstInvalid
 }
 
-// 报文最大长度
 const (
-	// Maximum payload size in bytes 256MB
+	// MaxPayloadSize Maximum payload size in bytes is 256MB
 	MaxPayloadSize = (1 << (4 * 7)) - 1
 )
 
 type IMessage interface {
-	// 将消息输出到写通道
+	// Encode write the data to the io
+	//将消息输出到写通道
 	Encode(writer io.Writer, proCommon *ProtocolCommon) error
-	// 从读通道读出消息
+	// Decode read the data from the io
+	//从读通道读出消息
 	Decode(reader io.Reader, header FixHeader, proCommon *ProtocolCommon) error
 }
 
+// writeMessageHeader Construct the message header
 // 写入消息的头部
 func writeMessageHeader(headerBuf *bytes.Buffer, fixHeader *FixHeader, mutableHeader *bytes.Buffer, payloadLen int32) error {
 	var mutableHeaderLen int64
@@ -74,13 +76,12 @@ func writeMessageHeader(headerBuf *bytes.Buffer, fixHeader *FixHeader, mutableHe
 	return err
 }
 
-/**
- *	连接消息
- */
+// Connect is the message used to build connection
+// 连接消息
 type Connect struct {
-	header          FixHeader //固定头部
-	protocolName    string    //协议名，DPIM
-	protocolVersion uint8     //1开始
+	header          FixHeader
+	protocolName    string
+	protocolVersion uint8 //1开始
 	//flags           uint8     //是否采用gzip等
 	keepAliveTime uint16 //连接间隔时间
 	Payload       string //JSON
@@ -160,23 +161,43 @@ func (msg *Connect) Decode(reader io.Reader, header FixHeader, proCommon *Protoc
 	return nil
 }
 
-/**
- *	回复连接消息
- */
 type ReturnCode uint8
 
 const (
-	RetCodeAccepted          = ReturnCode(iota) //连接成功
-	RetCodeServerUnavailable                    //服务器开小差
-	RetCodeBadLoginInfo                         //登陆信息错误
-	RetCodeNotAuthorized                        //未登陆
-	RetCodeAlreadyConnected                     //已经连接过了，错误状态，服务器会断开连接
-	RetCodeConcurrentLogin                      //并发登陆
-	RetCodeBadToken                             //token错误
-	RetCodeInvalidUid                           //uid错误
+	// RetCodeAccepted Connect successfully
+	// 连接成功
+	RetCodeAccepted = ReturnCode(iota)
 
-	//每增加一个，下面的errors必须同步增加一个
+	// RetCodeServerUnavailable Server is currently unavailable
+	// 服务器开小差
+	RetCodeServerUnavailable
 
+	// RetCodeBadLoginInfo There are some problems with login information
+	// 登陆信息错误
+	RetCodeBadLoginInfo
+
+	// RetCodeNotAuthorized The connection hasn't been authorized
+	// 未登陆
+	RetCodeNotAuthorized
+
+	// RetCodeAlreadyConnected This happens when the server receives duplicated Connect message
+	// 已经连接过了，错误状态，服务器会断开连接
+	RetCodeAlreadyConnected
+
+	// RetCodeConcurrentLogin This happens when the server receives two concurrent logins from same user
+	// 并发登陆
+	RetCodeConcurrentLogin
+
+	// RetCodeBadToken There are some problems with token
+	// token错误
+	RetCodeBadToken
+
+	// RetCodeInvalidUid Uid is invalid
+	// uid错误
+	RetCodeInvalidUid
+
+	// Each time there is a new return code, there should be a new connection error in the following section
+	// 每增加一个，下面的errors必须同步增加一个
 	retCodeFirstInvalid
 )
 
@@ -195,10 +216,12 @@ func (rc ReturnCode) IsValid() bool {
 	return rc >= RetCodeAccepted && rc < retCodeFirstInvalid
 }
 
+// ConnAck is the message used to respond to Connect message
+// 回复连接消息
 type ConnAck struct {
-	header FixHeader //固定头部
-	//flags		uint8		//预留
-	ReturnCode ReturnCode //状态码
+	header FixHeader
+	//flags		uint8		//Reserved
+	ReturnCode ReturnCode //Status code
 }
 
 func (msg *ConnAck) Encode(writer io.Writer, proCommon *ProtocolCommon) (err error) {
@@ -246,9 +269,8 @@ func (msg *ConnAck) Decode(reader io.Reader, header FixHeader, proCommon *Protoc
 	return nil
 }
 
-/**
- *	心跳包
- */
+// PingReq is the message used to keep the connection alive
+// 心跳包
 type PingReq struct {
 	header FixHeader //固定头部
 }
@@ -281,11 +303,10 @@ func (msg *PingReq) Decode(reader io.Reader, header FixHeader, proCommon *Protoc
 	return nil
 }
 
-/**
- *	心跳回应包
- */
+// PingResp is the message used to respond to PingReq
+// 心跳回应包
 type PingResp struct {
-	header FixHeader //固定头部
+	header FixHeader
 }
 
 func (msg *PingResp) Encode(writer io.Writer, proCommon *ProtocolCommon) (err error) {
@@ -316,18 +337,22 @@ func (msg *PingResp) Decode(reader io.Reader, header FixHeader, proCommon *Proto
 	return nil
 }
 
-/*
- *	断开连接
- */
 type DiscType uint8
 
 const (
-	DiscTypeNone    = DiscType(iota) //默认类型，客户端发给服务器的时候使用
-	DiscTypeKickout                  //踢出登录，服务器发给客户端，客户端应立即注销
+	// DiscTypeNone the default one, sent by the client to close connection
+	// 默认类型，客户端发给服务器的时候使用
+	DiscTypeNone = DiscType(iota)
+
+	// DiscTypeKickout server use this one to ask the client to disconnect immediately
+	// 踢出登录，服务器发给客户端，客户端应立即注销
+	DiscTypeKickout
 )
 
+// Disconnect is the message used to close the connection
+// 断开连接
 type Disconnect struct {
-	header FixHeader //固定头部
+	header FixHeader
 	Type   DiscType
 }
 
@@ -365,13 +390,18 @@ func (msg *Disconnect) Decode(reader io.Reader, header FixHeader, proCommon *Pro
 	return nil
 }
 
-/**
- *	发送消息
- */
 const (
-	RLevelNoReply    = ReplyLevel(iota) //不需要回复
-	RLevelReplyLater                    //业务逻辑返回后回复
-	//RLevelReplyNow			//立刻回复（业务逻辑之前）
+	// RLevelNoReply message that don't need to reply
+	// 不需要回复
+	RLevelNoReply = ReplyLevel(iota)
+
+	// RLevelReplyLater message that should be replied after the action
+	// 业务逻辑返回后回复
+	RLevelReplyLater
+
+	// RLevelReplyNow message that should be replied immediately
+	// 立刻回复（业务逻辑之前）
+	//RLevelReplyNow
 
 	rLevelFirstInvalid
 )
@@ -386,14 +416,16 @@ func (rLevel ReplyLevel) HasId() bool {
 	return rLevel == RLevelReplyLater
 }
 
+// SendReq is the message used as request
+// 发送消息
 type SendReq struct {
 	header     FixHeader  //固定头部
 	ReplyLevel ReplyLevel //回复等级（包含在头部中）
 	MessageId  uint16     //消息id
 	Type       string     //消息类型
 	Payload    string     //消息内容
-	HasData    bool       //是否有二进制数据
-	Data       []byte     //二进制数据
+	HasData    bool       //whether there is binary data 是否有二进制数据
+	Data       []byte     //binary data 二进制数据
 }
 
 func (msg *SendReq) Encode(writer io.Writer, proCommon *ProtocolCommon) (err error) {
@@ -478,9 +510,8 @@ func (msg *SendReq) Decode(reader io.Reader, header FixHeader, proCommon *Protoc
 	return nil
 }
 
-/**
- *	发送消息回执
- */
+// SendResp is the message used as response for SendReq
+// 发送消息回执
 type SendResp struct {
 	header    FixHeader //固定头部
 	MessageId uint16    //所回复的消息id

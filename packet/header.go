@@ -6,6 +6,7 @@ import (
 	"io"
 )
 
+// FixHeader is the fixed length header in front of each message
 type FixHeader struct {
 	MsgType   MessageType
 	remainLen int32
@@ -46,8 +47,10 @@ func (header *FixHeader) Decode(reader io.Reader) (err error) {
 	}
 	//消息类型
 	msgType := MessageType(buf[0] & 0xF0 >> 4)
+	//Get the flags
 	//标志位
 	flags := buf[0] & 0x0F
+	//The 4th bit is reserved, it should only be 0
 	//第四位是保留位，不为0则报错
 	if (flags & 0x01) != 0 {
 		err = NewMessageError(fmt.Sprintf(invalidFlagError+":%d", flags))
@@ -57,9 +60,9 @@ func (header *FixHeader) Decode(reader io.Reader) (err error) {
 	remainingLength, _ := decodeLength(reader)
 	//固定头部
 	*header = FixHeader{
-		MsgType:	msgType,
-		remainLen:	remainingLength,
-		flags:		flags,
+		MsgType:   msgType,
+		remainLen: remainingLength,
+		flags:     flags,
 	}
 	return
 }

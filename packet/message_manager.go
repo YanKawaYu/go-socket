@@ -6,17 +6,19 @@ import (
 )
 
 type ProtocolCommon struct {
-	ProName string
-	ProVersion uint8
-	KeepAliveTime uint16
+	ProName           string
+	ProVersion        uint8
+	KeepAliveTime     uint16
 	EnablePayloadGzip bool
 }
 
+// MessageManager is the class used to decode and encode messages
 type MessageManager struct {
 	ProCommon ProtocolCommon
 }
 
-//创建一条新消息
+// newMessage create a new message
+// 创建一条新消息
 func newMessage(msgType MessageType) (msg IMessage, err error) {
 	switch msgType {
 	case MsgConnect:
@@ -39,7 +41,8 @@ func newMessage(msgType MessageType) (msg IMessage, err error) {
 	return
 }
 
-//读取一条新消息
+// DecodeMessage reads a new message from the io
+// 读取一条新消息
 func (manager *MessageManager) DecodeMessage(reader io.Reader) (msg IMessage, err error) {
 	defer func() {
 		if e := recover(); e != nil {
@@ -56,6 +59,7 @@ func (manager *MessageManager) DecodeMessage(reader io.Reader) (msg IMessage, er
 		return
 	}
 	switch message := msg.(type) {
+	//If the message is a Connect, save the common params
 	//如果是Connect包，将包中数值赋值给协议的公共参数，另外不需要传入公共参数
 	case *Connect:
 		err = msg.Decode(reader, header, nil)
@@ -70,10 +74,12 @@ func (manager *MessageManager) DecodeMessage(reader io.Reader) (msg IMessage, er
 	return msg, err
 }
 
-//写入一条消息
+// EncodeMessage writes a new message into the io
+// 写入一条消息
 func (manager *MessageManager) EncodeMessage(writer io.Writer, msg IMessage) error {
 	var err error = nil
 	switch message := msg.(type) {
+	//If the message is a Connect, assign the common params
 	//如果是Connect包，将协议的公共参数赋值到包中数值，另外不需要传入公共参数
 	case *Connect:
 		message.protocolName = manager.ProCommon.ProName
