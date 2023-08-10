@@ -423,7 +423,7 @@ type SendReq struct {
 	ReplyLevel ReplyLevel //回复等级（包含在头部中）
 	MessageId  uint16     //消息id
 	Type       string     //消息类型
-	Payload    string     //消息内容
+	Payload    string     //JSON
 	HasData    bool       //whether there is binary data 是否有二进制数据
 	Data       []byte     //binary data 二进制数据
 }
@@ -513,9 +513,9 @@ func (msg *SendReq) Decode(reader io.Reader, header FixHeader, proCommon *Protoc
 // SendResp is the message used as response for SendReq
 // 发送消息回执
 type SendResp struct {
-	header    FixHeader //固定头部
-	MessageId uint16    //所回复的消息id
-	Payload   string    //消息内容
+	header    FixHeader //Fixed header
+	MessageId uint16    //Message id to respond
+	Payload   string    //JSON
 }
 
 func (msg *SendResp) Encode(writer io.Writer, proCommon *ProtocolCommon) (err error) {

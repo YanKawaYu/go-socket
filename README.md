@@ -1,6 +1,7 @@
 # go-socket
 Go-socket is an open-source, high-performance socket framework for building backend services in Golang.
 
+The protocol of Go-socket is called `GOSOC`, which is similar to [MQTT](https://mqtt.org/). Since MQTT is designed for the Internet of Things(loT), it's extremely efficient. For more information, please read [GOSOC](docs/gosoc.md).
 ## Getting started
 
 ### Getting Go-socket
@@ -37,7 +38,8 @@ func main() {
 		TlsEnable: false,
 	}
 	fastLog := gosocket.GetFastLog("app.access", false)
-	gosocket.Run(appConfig, nil, gosocket.GetLog(false), fastLog) // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	// listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	gosocket.Run(appConfig, nil, gosocket.GetLog(false), fastLog)
 }
 ```
 And use the Go command to run the demo:
@@ -49,3 +51,13 @@ $ telnet 127.0.0.1 8080
 ```
 
 ### Learn more examples
+
+Learn and practice more examples, please read the [Go-socket Quick Start](docs/doc.md) which includes API examples
+
+## Contributing
+
+For now, I'm the only one that maintaining Go-socket. Any pull requests, suggestions or issues are appreciated!
+
+## License
+
+Go-socket is under the MIT license. See the [LICENSE](/LICENSE) file for details.
