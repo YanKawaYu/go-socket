@@ -33,12 +33,13 @@ type Client struct {
 
 // NewClient create a new client by providing the ip, port of the server and whether to use tls
 // 创建一个新的客户端连接
-func NewClient(ip string, port int, isTls bool, log ILogger) *Client {
+func NewClient(ip string, port int, isTls bool, log ILogger, provider IConnectProvider) *Client {
 	c := &Client{
-		ip:     ip,
-		port:   port,
-		isTls:  isTls,
-		logger: log,
+		ip:       ip,
+		port:     port,
+		isTls:    isTls,
+		logger:   log,
+		provider: provider,
 	}
 	return c
 }
