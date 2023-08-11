@@ -99,10 +99,40 @@ The client first connect to the server and then send a request on `chat.AddMessa
 ```
 
 ## Auth
-In the example above, there is no identification when the client connects to server. In fact, you can create a class that inherited from `AuthUser` to implement identification process.
+In the example above, there is no identification when the client connects to server. In fact, you can create a class that inherited from `AuthUser` to implement identification process as following:
+```go
+import (
+	gosocket "github.com/yankawayu/go-socket"
+	"github.com/yankawayu/go-socket/packet"
+)
+
+type TestUser struct {
+	gosocket.AuthUser
+}
+
+func (user *TestUser) Auth(payload string, ip string) (uid int64, code packet.ReturnCode) {
+	loginInfo := map[string]string{
+		"username": "xxx",
+		"password": "xxx",
+	}
+	gosocket.JSONDecode(payload, &loginInfo)
+	uid = auth(loginInfo["username"], loginInfo["password"])
+	return uid, packet.RetCodeAccepted
+}
+```
+Please keep in mind that `auth` function is unimplemented. You should implement this function to perform the identification process. It is not recommended to use username and password in production environment design. Feel free to use any mechanism you want.
+
+After you finish defining the auth class, use it to run the server like the following code:
+```go
+gosocket.Run(appConfig, &TestUser{}, gosocket.GetLog(false), fastLog)
+```
 
 ## Error Handling
+There is an interface `IUserError` for user defined error in `error.go`. Implement this interface in your custom error class to customize messages that responded to the client.
 
 ## Log
+There are two log utilities in the framework. One is called `Log` and another is called `FastLog`. The `Log` is used to log normal situations like error and critical since it's not efficient enough. While the `FastLog` can be used to log all the incoming requests or any other high frequent demands. Feel free to use them in your own situations.
 
 ## Build an IM Server
+The ultimate goal of this project is to support a high performance IM server developed by Go. I would like to release all related codes in the future.
+Hope it helps.
