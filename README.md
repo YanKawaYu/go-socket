@@ -20,6 +20,12 @@ Otherwise, run the following Go command to install the `go-socket` package:
 $ go get -u github.com/YanKawaYu/go-socket
 ```
 
+If you hadn't created a module, make sure you run this command first
+
+```sh
+go mod init Example
+```
+
 ### Running Go-socket
 
 After you import go-socket package, you can start with a simplest example like the following `example.go`:
@@ -42,9 +48,11 @@ func main() {
 	gosocket.Run(appConfig, nil, gosocket.GetLog(false), fastLog)
 }
 ```
-And use the Go command to run the demo:
+Make sure you create a `runtime` directory for logging and then use the Go command to run the demo:
 
 ```
+# create a directory for logging
+$ mkdir -m 777 runtime
 # run example.go and access the server with telnet
 $ go run example.go
 $ telnet 127.0.0.1 8080

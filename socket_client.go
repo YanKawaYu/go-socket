@@ -10,6 +10,13 @@ import (
 	"time"
 )
 
+// IConnectProvider is used to provide connect info
+type IConnectProvider interface {
+	// GetConnectInfo Implement this function to provide connect info string to the server
+	// 重载这个函数向服务器提供连接信息
+	GetConnectInfo() string
+}
+
 // Client is a class responsible for connecting to the server by socket
 // Make sure the port and the isTls value are the same as the ones on server
 type Client struct {
@@ -18,7 +25,8 @@ type Client struct {
 	isTls  bool
 	logger ILogger
 
-	conn *SocketClientConn
+	conn     *SocketClientConn
+	provider IConnectProvider
 
 	pingTimer *Timer
 }
@@ -33,12 +41,6 @@ func NewClient(ip string, port int, isTls bool, log ILogger) *Client {
 		logger: log,
 	}
 	return c
-}
-
-// GetConnectInfo Override this function to provide connect info string to the server
-// 重载这个函数向服务器提供连接信息
-func (client *Client) GetConnectInfo() string {
-	return ""
 }
 
 // Connect start to connect the server
@@ -67,7 +69,7 @@ func (client *Client) Connect() (err error) {
 		return
 	}
 	client.conn = NewSocketClientConn(connection, client.logger)
-	err = client.conn.Connect(client.GetConnectInfo())
+	err = client.conn.Connect(client.provider.GetConnectInfo())
 	//如果连接成功
 	if err == nil {
 		//每隔一段时间发送心跳包

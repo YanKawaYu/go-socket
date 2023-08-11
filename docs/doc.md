@@ -92,8 +92,14 @@ func main() {
 	_ = <-forever
 }
 ```
+The client first connect to the server and then send a request on `chat.AddMessage`. If everything goes well, you will see the server response printed in the console:
+
+```json
+{"message_id":"1"}
+```
 
 ## Auth
+In the example above, there is no identification when the client connects to server. In fact, you can create a class that inherited from `AuthUser` to implement identification process.
 
 ## Error Handling
 
