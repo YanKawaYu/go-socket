@@ -18,6 +18,7 @@ package main
 import (
 	"fmt"
 	gosocket "github.com/yankawayu/go-socket"
+	"strconv"
 )
 
 type ChatController struct {
@@ -35,7 +36,7 @@ func (controller *ChatController) GetActionParamMap() map[string]interface{} {
 }
 
 func (controller *ChatController) AddMessage(request *AddMessageReqBody, response *gosocket.ResponseBody) {
-	fmt.Println(request.Message)
+	fmt.Println("user " + strconv.FormatInt(controller.User.GetUid(), 10) + " message received: " + request.Message)
 	response.Data = map[string]string{
 		"message_id": "1",
 	}
@@ -89,9 +90,9 @@ func main() {
 		panic(err)
 	}
 	client.GetData("chat.AddMessage", map[string]string{
-		"message": "test",
+		"message": "This is a message",
 	}, func(err error, data string) {
-		fmt.Println(data)
+		fmt.Println("Content from server: "+data)
 	}, []byte{})
 	//Stop the client from exiting before the server responds
 	forever := make(chan int)
@@ -105,8 +106,10 @@ The client first connect to the server and then send a request on `chat.AddMessa
 ```
 
 ## Auth
-In the example above, there is no identification when the client connects to server. In fact, you can create a class that inherited from `AuthUser` to implement identification process as following:
+In the example above, there is no identification when the client connects to server. In fact, you can create a class that inherited from `AuthUser` to implement identification process as the following `user.go`:
 ```go
+package main
+
 import (
 	gosocket "github.com/yankawayu/go-socket"
 	"github.com/yankawayu/go-socket/packet"
@@ -131,6 +134,22 @@ Please keep in mind that `auth` function is unimplemented. You should implement 
 After you finish defining the auth class, use it to run the server like the following code:
 ```go
 gosocket.Run(appConfig, &TestUser{}, gosocket.GetLog(false), fastLog)
+```
+
+For the client, if you want to send the username and password, you need to create a class which implement `GetConnectInfo` function like the following:
+```go
+package main
+
+type ClientProvider struct{}
+
+func (provider *ClientProvider) GetConnectInfo() string {
+	return "{\"username\":\"haha\", \"password\":\"xxxxx\"}"
+}
+```
+
+Then pass an instance of the provider to `gosocket.NewClient` function when you use it:
+```go
+client := gosocket.NewClient("127.0.0.1", 8080, false, gosocket.GetLog(false), &ClientProvider{})
 ```
 
 ## Error Handling
