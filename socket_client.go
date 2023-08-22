@@ -70,7 +70,11 @@ func (client *Client) Connect() (err error) {
 		return
 	}
 	client.conn = NewSocketClientConn(connection, client.logger)
-	err = client.conn.Connect(client.provider.GetConnectInfo())
+	connectInfo := "{}"
+	if client.provider != nil {
+		connectInfo = client.provider.GetConnectInfo()
+	}
+	err = client.conn.Connect(connectInfo)
 	//如果连接成功
 	if err == nil {
 		//每隔一段时间发送心跳包

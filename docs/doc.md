@@ -66,6 +66,12 @@ func main() {
 
 It is recommended that the router name `chat` is the same as the prefix of `ChatController`. Now we can access to the `AddMessage` action by using payload type `chat.AddMessage` in a client request.
 
+If you want to run these two files in command line, you need to add `chat.go` to the file list:
+
+```sh
+go build example.go chat.go
+```
+
 ## Client
 Go-socket has a built-in client. It's implemented by socket_client.go and socket_client_conn.go. Let's create a `client.go` that can be used to connect to the server we just created in the last section.
 ```go
@@ -77,7 +83,7 @@ import (
 )
 
 func main() {
-	client := gosocket.NewClient("127.0.0.1", 8080, false, gosocket.GetLog(false))
+	client := gosocket.NewClient("127.0.0.1", 8080, false, gosocket.GetLog(false), nil)
 	err := client.Connect()
 	if err != nil {
 		panic(err)
