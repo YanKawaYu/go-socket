@@ -72,3 +72,6 @@ For now, I'm the only one that maintaining Go-socket. Any pull requests, suggest
 ## License
 
 Go-socket is under the MIT license. See the [LICENSE](/LICENSE) file for details.
+
+## What's next
+There is a client library corresponding to this framework, which can be integrated into Android and iOS Apps to connect to the server created by this framework. I would like to release it in the future.
