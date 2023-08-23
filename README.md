@@ -58,6 +58,9 @@ $ go run example.go
 $ telnet 127.0.0.1 8080
 ```
 
+### Go versions
+Since we use `go.uber.org/zap` as the log component, it only supports the two most recent minor versions of Go. Therefore, the requirement of the Go version for this framework is the same.
+
 ### Learn more examples
 
 Learn and practice more examples, please read the [Go-socket Quick Start](docs/doc.md) which includes API examples
