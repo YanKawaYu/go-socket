@@ -73,5 +73,7 @@ For now, I'm the only one that maintaining Go-socket. Any pull requests, suggest
 
 Go-socket is under the MIT license. See the [LICENSE](/LICENSE) file for details.
 
+The encoding and decoding part of this software is modified from [this repository](https://github.com/huin/mqtt). Thanks to the author Zhangxuan,Xu.
+
 ## What's next
 There is a client library corresponding to this framework, which can be integrated into Android and iOS Apps to connect to the server created by this framework. I would like to release it in the future.
