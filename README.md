@@ -1,4 +1,7 @@
-# go-socket
+# go-socket [![Build Status](https://github.com/YanKawaYu/go-socket/workflows/Test/badge.svg?branch=main)](https://github.com/YanKawaYu/go-socket/actions?query=branch%3Amain) [![Go Report Card](https://goreportcard.com/badge/github.com/YanKawaYu/go-socket)](https://goreportcard.com/report/github.com/YanKawaYu/go-socket) [![Go Reference](https://pkg.go.dev/badge/github.com/YanKawaYu/go-socket.svg)](https://pkg.go.dev/github.com/YanKawaYu/go-socket)
+
+
+
 Go-socket is an open-source, high-performance socket framework for building backend services in Golang.
 
 The protocol of Go-socket is called `GOSOC`, which is similar to [MQTT](https://mqtt.org/). Since MQTT is designed for the Internet of Things(loT), it's extremely efficient. For more information, please read [GOSOC](docs/gosoc.md).
