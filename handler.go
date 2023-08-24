@@ -132,7 +132,7 @@ func (handler *MessageHandler) Start() {
 			//如果已登陆
 			if handler.user.IsLogin() {
 				//距离上一次刷新超过3分钟，在线状态的过期时间必须大于3+1分钟，目前状态过期时间是5分钟
-				if time.Now().Sub(refreshTime) > 3*time.Minute {
+				if time.Since(refreshTime) > 3*time.Minute {
 					//刷新在线状态
 					handler.user.Refresh()
 					//更新刷新时间
@@ -204,7 +204,7 @@ func (handler *MessageHandler) handleConnect(msg *packet.Connect) (isConnect boo
 		//返回是否连接成功
 		isConnect = returnCode == packet.RetCodeAccepted
 		//处理时间
-		processDuration := fmt.Sprintf("%.3f", float32(time.Now().Sub(startTime))/float32(time.Second))
+		processDuration := fmt.Sprintf("%.3f", float32(time.Since(startTime))/float32(time.Second))
 
 		//Log a record
 		message := ""
@@ -279,7 +279,7 @@ func (handler *MessageHandler) handleSendReq(msg *packet.SendReq) {
 		//处理不需要回复的消息
 		handler.user.HandleNoReplyReq(msg.Type, msg.Payload)
 		//处理时间
-		processDuration := fmt.Sprintf("%.3f", float32(time.Now().Sub(startTime))/float32(time.Second))
+		processDuration := fmt.Sprintf("%.3f", float32(time.Since(startTime))/float32(time.Second))
 		//记录日志
 		sendReqInfo := []zapcore.Field{
 			zap.String(kAccessLogType, msg.Type),
@@ -298,7 +298,7 @@ func (handler *MessageHandler) handleSendReq(msg *packet.SendReq) {
 		response := ProcessPayloadWithData(handler.user, msg.Type, msg.Payload, msg.Data)
 		//To find out whether there are slow requests
 		//处理时间
-		processDuration := fmt.Sprintf("%.3f", float32(time.Now().Sub(startTime))/float32(time.Second))
+		processDuration := fmt.Sprintf("%.3f", float32(time.Since(startTime))/float32(time.Second))
 
 		//Filter long parameters to avoid logging too many in the log file
 		//检查参数中是否有过长的
@@ -370,7 +370,6 @@ func (handler *MessageHandler) Submit(message packet.IMessage) {
 			TcpApp.Log.Error(fullMessage)
 		}
 	}
-	return
 }
 
 // Send message synchronously, if the queue is full then wait until the message is sent
@@ -394,5 +393,4 @@ func (handler *MessageHandler) submitSync(message packet.IMessage) {
 			TcpApp.Log.Error(fullMessage)
 		}
 	}
-	return
 }

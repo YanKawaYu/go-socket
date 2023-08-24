@@ -140,7 +140,10 @@ func setGzipString(val string, buf *bytes.Buffer) {
 	//gzip
 	var b bytes.Buffer
 	gzipWriter := gzip.NewWriter(&b)
-	gzipWriter.Write([]byte(val))
+	_, err := gzipWriter.Write([]byte(val))
+	if err != nil {
+		panic(err)
+	}
 	gzipWriter.Flush()
 	gzipWriter.Close()
 	//长度

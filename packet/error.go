@@ -35,9 +35,9 @@ func GetRecoverError(r interface{}) error {
 	switch x := r.(type) {
 	case string:
 		err = errors.New(x)
-	case error:
-		err = x
 	case MessageErr:
+		err = x
+	case error:
 		err = x
 	default:
 		err = errors.New("unknown panic")

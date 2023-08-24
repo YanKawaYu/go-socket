@@ -77,7 +77,7 @@ func (manager *MessageManager) DecodeMessage(reader io.Reader) (msg IMessage, er
 // EncodeMessage writes a new message into the io
 // 写入一条消息
 func (manager *MessageManager) EncodeMessage(writer io.Writer, msg IMessage) error {
-	var err error = nil
+	var err error
 	switch message := msg.(type) {
 	//If the message is a Connect, assign the common params
 	//如果是Connect包，将协议的公共参数赋值到包中数值，另外不需要传入公共参数

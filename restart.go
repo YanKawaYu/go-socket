@@ -87,7 +87,7 @@ func (manager *RestartManager) handleSignals() {
 	pid := os.Getpid()
 	//Listen to both syscall.SIGUSR2 and syscall.SIGUSR1
 	//注册需要接收的信号
-	signalChan := make(chan os.Signal)
+	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGUSR2, syscall.SIGUSR1)
 	//Keep receiving signals
 	//开始接收

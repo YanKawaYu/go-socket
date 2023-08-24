@@ -147,7 +147,8 @@ func (client *ClientConn) startReader() {
 		//超时时间，设置为心跳包间隔的1.5倍，避免复杂网络
 		timeoutInterval := time.Duration(float64(client.msgManager.ProCommon.KeepAliveTime) * 1.5)
 		if timeoutInterval > 0 {
-			client.conn.SetReadDeadline(time.Now().Add(timeoutInterval * time.Second))
+			//If failed to set deadline, ignore it
+			_ = client.conn.SetReadDeadline(time.Now().Add(timeoutInterval * time.Second))
 		}
 		//Get the message
 		//获取消息

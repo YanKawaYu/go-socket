@@ -34,9 +34,10 @@ func (listener *Listener) Accept() (net.Conn, error) {
 		return nil, err
 	}
 	//Make sure the KeepAlive mechanism in TCP is opened
+	//Ignore the errors
 	//底层协议中也进行心跳保活
-	tcpConn.SetKeepAlive(true)
-	tcpConn.SetKeepAlivePeriod(time.Minute)
+	_ = tcpConn.SetKeepAlive(true)
+	_ = tcpConn.SetKeepAlivePeriod(time.Minute)
 	//记录一个连接
 	listener.waitGroup.Add(1)
 	//Embed net.Conn in Connection to rewrite Close function

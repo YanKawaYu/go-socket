@@ -278,7 +278,7 @@ type PingReq struct {
 func (msg *PingReq) Encode(writer io.Writer, proCommon *ProtocolCommon) (err error) {
 	msg.header.MsgType = MsgPingReq
 	finalBuf := new(bytes.Buffer)
-	writeMessageHeader(finalBuf, &msg.header, nil, 0)
+	err = writeMessageHeader(finalBuf, &msg.header, nil, 0)
 	if err != nil {
 		return err
 	}
