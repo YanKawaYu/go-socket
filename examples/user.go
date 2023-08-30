@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	gosocket "github.com/yankawayu/go-socket"
 	"github.com/yankawayu/go-socket/packet"
+	"strconv"
 )
 
 type TestUser struct {
@@ -16,6 +18,7 @@ func (user *TestUser) Auth(payload string, ip string) (uid int64, code packet.Re
 	}
 	gosocket.JSONDecode(payload, &loginInfo)
 	uid = auth(loginInfo["username"], loginInfo["password"])
+	fmt.Println("user " + strconv.FormatInt(uid, 10) + " connected")
 	return uid, packet.RetCodeAccepted
 }
 

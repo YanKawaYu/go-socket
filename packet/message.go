@@ -7,9 +7,12 @@ import (
 	"io"
 )
 
+// Notice that this name must be exactly the same as the one in client
+// Or else the server will cut off the connection immediately
 const ProtocolName = "GOSOC"
 const ProtocolVersion = 1
 
+// All types of message
 // 消息类型
 const (
 	MsgConnect = MessageType(iota + 1)
