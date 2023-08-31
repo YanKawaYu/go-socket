@@ -5,6 +5,9 @@
 Go-socket is an open-source, high-performance socket framework for building backend services in Golang.
 
 The protocol of Go-socket is called `GOSOC`, which is similar to [MQTT](https://mqtt.org/). Since MQTT is designed for the Internet of Things(loT), it's extremely efficient. For more information, please read [GOSOC](docs/gosoc.md).
+
+Together with [go-socket-client](https://github.com/YanKawaYu/go-socket-client), you will be able to build a server/client system communicating with each other using sockets.
+
 ## Getting started
 
 ### Getting Go-socket
@@ -79,4 +82,4 @@ Go-socket is under the MIT license. See the [LICENSE](/LICENSE) file for details
 The encoding and decoding part of this software is modified from [this repository](https://github.com/huin/mqtt). Thanks to the author Zhangxuan,Xu.
 
 ## What's next
-There is a client library corresponding to this framework, which can be integrated into Android and iOS Apps to connect to the server created by this framework. I would like to release it in the future.
+The ultimate goal of this project is to support a high performance IM server developed by Go. I would like to release it in the future.
