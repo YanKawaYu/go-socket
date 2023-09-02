@@ -8,6 +8,10 @@ The protocol of Go-socket is called `GOSOC`, which is similar to [MQTT](https://
 
 Together with [go-socket-client](https://github.com/YanKawaYu/go-socket-client), you will be able to build a server/client system communicating with each other using sockets.
 
+The Go-socket is designed to work independently on each server as long as there are common databases to store data. Therefore, you can deploy it on as many servers as you want, so that it can hold on up to 1 million users at the same time. Just put a load balancer like nginx in front of those servers to balance all the requests from clients. The following diagram describe the deployment:
+
+![architecture](https://github.com/YanKawaYu/go-socket/blob/main/.github/Structure.png?raw=true)
+
 ## Getting started
 
 ### Getting Go-socket
@@ -70,6 +74,15 @@ Since we use `go.uber.org/zap` as the log component, it only supports the two mo
 ### Learn more examples
 
 Learn and practice more examples, please read the [Go-socket Quick Start](docs/doc.md) which includes API examples
+
+
+### Source code
+
+There are several major classes in the framework. Their relationships can be explained through the following diagram.
+
+![go-socket](https://github.com/YanKawaYu/go-socket/blob/main/.github/Go-socket.png?raw=true)
+
+For more details, you should see the comments in the source code.
 
 ## Contributing
 
